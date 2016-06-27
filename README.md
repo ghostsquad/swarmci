@@ -39,11 +39,11 @@ A `.swarmci` file consists of several layers.
 
 Each job consists of several pieces of information:
 
-* `image`: the image to be used for all tasks within this job. (Note: this image should be on an available registry for the swarm to pull from), and should have an entrypoint that _does not exit_, because all tasks will run on this container, and expect the container to continue to be running between tasks.
+* `image`: the image to be used for all tasks within this job. (Note: this image should be on an available registry for the swarm to pull from), and should have an entrypoint that _does not exit_, because all tasks will run on this container, and expect the container to continue to be running between tasks. This can be either a string or a list. When in list form, this job will be converted to a [job matrix](#job-matrix).
 * `clone`: not all jobs need to clone the repo, set this to `False` if you don't need to clone. Default `True`
-* `env`: environment variables to be made available for `tasks`, `before_compose`, `after_failure`, and `finally`.
+* `env`: environment variables to be made available for `tasks`, `before_compose`, `after_failure`, and `finally`. This can be dictionary or a list of dictionaries. When in list form, this job will be converted to a [job matrix](#job-matrix).
 * `before_compose` (OPTIONAL): tasks to run before running compose. This can be either a string or a list.
-* `compose` (OPTIONAL): a [docker compose](https://docs.docker.com/compose/overview/) dictionary in order to launch a multi-container application for testing.
+* `compose` (OPTIONAL): a [docker compose](https://docs.docker.com/compose/overview/) dictionary in order to launch a multi-container application for testing. This can be either a dictionary or a list of dictionaries. When in list form, this job will be converted to a [job matrix](#job-matrix).
 * `task(s)`: This can be either a string or a list.
 * `after_failure` (OPTIONAL): this runs if any task task fails. This can be either a string or a list.
 * `finally` (OPTIONAL): this runs regardless of result of prior tasks. This can be either a string or a list.
@@ -55,6 +55,9 @@ stages:
   foo-stage:
     bar-job:
       image: my-ci-python:3.5
+      env:
+        foo: bar
+        hello: world
       clone: False
       before_compose:
         - docker build -t my.registry:5000/baz .
@@ -64,7 +67,6 @@ stages:
         services:
           foo:
             image: foo
-            network_mode: "service:baz"
           bar:
             image: bar
           baz:
@@ -76,20 +78,41 @@ stages:
       finally: /bin/echo "this runs regardless of the result of the script tasks"
 ```
 
-#### Build matrix
+#### <a name="job-matrix"></a>Job Matrix
 
-A job can be converted to a matrix with a combination of different images and env variables. Any duplication between what's hard coded in the job meta and in the matrix will be eliminated.
+When a job is converted to a job-matrix, you get all possible combinations of `image`, `env` variables, `compose` definitions and `tasks`. Here is an example job matrix that expands to 120 individual (5 \* 4 \* 3 \* 2) jobs.
 
 ```
-matrix:
-  bar-job:
-    image:
-      - my-ci-python:3.5
-      - my-ci-python:3.2
-      - my-ci-python:2.7
-    env:
-      - foo: bar
-        hello: world
-      - foo: baz
-        hello: goodbye
+bar-job:
+  image:
+    - my-ci-python:2.7
+    - my-ci-python:3.2
+    - my-ci-python:3.3
+    - my-ci-python:3.4
+    - my-ci-python:3.5
+  env:
+    - db: mysql
+      foo: v1
+    - db: mysql
+      foo: v2
+    - db: redis
+      foo: v2
+    - db: mongodb
+      foo: v2
+  compose:
+    - version: "2"
+      services:
+        foo:
+          image: foo:1
+        bar:
+          image: bar:1      
+    - version: "2"
+      services:
+        foo:
+          image: foo:2
+        bar:
+          image: bar:2
+  tasks:
+    - /bin/bash -c "echo \"using db: ${db} and foo: ${foo}\""
+    - python -m pytest tests/
 ```
