@@ -3,10 +3,10 @@ Swarm CI
 
 ## Architecture
 
-Requires Docker 1.12 or greater
-Requires Consul for service discovery
+* Requires Docker 1.12 or greater
+* Requires Consul for service discovery
 
-The basic idea of Swarm CI is to leverage Docker Swarm to run decoupled tasks as part of a build within the swarm using one-time-use docker containers (think serverless docker like AWS Lambda).
+The basic idea of Swarm CI is to leverage Docker Swarm to run builds and tests within containers in an easy, distributed, parallel and fast way.
 
 ## Getting Started
 
@@ -16,7 +16,7 @@ The basic idea of Swarm CI is to leverage Docker Swarm to run decoupled tasks as
 
 First, you'll need to tell SwarmCI a bit about your repository. Repositories requiring authentication are currently not supported natively, though if you build a docker image with SSH private key baked in under the root account, then ssh will work without any extra configurations in the `.swarmci` file.
 
-```
+```yaml
 git:
   url: git+https://my.repo/project.git
 ```
@@ -24,7 +24,7 @@ git:
 ##### Clone Depth
 You can customize the clone depth (which defaults 50)
 
-```
+```yaml
 git:
   depth: 3
 ```
@@ -39,18 +39,18 @@ A `.swarmci` file consists of several layers.
 
 Each job consists of several pieces of information:
 
-* `image`: the image to be used for all tasks within this job. (Note: this image should be on an available registry for the swarm to pull from), and should have an entrypoint that _does not exit_, because all tasks will run on this container, and expect the container to continue to be running between tasks. This can be either a string or a list. When in list form, this job will be converted to a [job matrix](#job-matrix).
-* `clone`: not all jobs need to clone the repo, set this to `False` if you don't need to clone. Default `True`
-* `env`: environment variables to be made available for `tasks`, `before_compose`, `after_failure`, and `finally`. This can be dictionary or a list of dictionaries. When in list form, this job will be converted to a [job matrix](#job-matrix).
+* `image` (**REQUIRED**): the image to be used for all tasks within this job. This image should be on an available registry for the swarm to pull from, and should have an entrypoint that _does not exit_, because all tasks will run on this container, and SwarmCI expects to be able to launch the container, leave it running, and exec tasks on the running container. This can be either a string or a list. When in list form, this job will be converted to a [job matrix](#job-matrix).
+* `clone` (OPTIONAL): not all jobs need to clone the repo, set this to `False` if you don't need to clone. Default `True`
+* `env` (OPTIONAL): environment variables to be made available for `tasks`, `before_compose`, `after_failure`, and `finally`. This can be dictionary or a list of dictionaries. When in list form, this job will be converted to a [job matrix](#job-matrix).
 * `before_compose` (OPTIONAL): tasks to run before running compose. This can be either a string or a list.
 * `compose` (OPTIONAL): a [docker compose](https://docs.docker.com/compose/overview/) dictionary in order to launch a multi-container application for testing. This can be either a dictionary or a list of dictionaries. When in list form, this job will be converted to a [job matrix](#job-matrix).
-* `task(s)`: This can be either a string or a list.
+* `task(s)` (**REQUIRED**): This can be either a string or a list. If any task in the list fails, subsequent tasks will not be run, however, `after_failure` and `finally` will run if defined.
 * `after_failure` (OPTIONAL): this runs if any task task fails. This can be either a string or a list.
 * `finally` (OPTIONAL): this runs regardless of result of prior tasks. This can be either a string or a list.
 
 Full Example:
 
-```
+```yaml
 stages:
   foo-stage:
     bar-job:
@@ -80,15 +80,14 @@ stages:
 
 #### <a name="job-matrix"></a>Job Matrix
 
-When a job is converted to a job-matrix, you get all possible combinations of `image`, `env` variables, `compose` definitions and `tasks`. Here is an example job matrix that expands to 120 individual (5 \* 4 \* 3 \* 2) jobs.
+When a job is converted to a job-matrix, you get all possible combinations of `image`, `env` variables, and `compose` definitions. Here is an example job matrix that expands to 24 individual (4 \* 3 \* 2) jobs.
 
-```
+```yaml
 bar-job:
   image:
     - my-ci-python:2.7
     - my-ci-python:3.2
     - my-ci-python:3.3
-    - my-ci-python:3.4
     - my-ci-python:3.5
   env:
     - db: mysql
@@ -96,8 +95,6 @@ bar-job:
     - db: mysql
       foo: v2
     - db: redis
-      foo: v2
-    - db: mongodb
       foo: v2
   compose:
     - version: "2"
@@ -112,7 +109,5 @@ bar-job:
           image: foo:2
         bar:
           image: bar:2
-  tasks:
-    - /bin/bash -c "echo \"using db: ${db} and foo: ${foo}\""
-    - python -m pytest tests/
+  # note: all tasks will run for each expanded job instance
 ```
