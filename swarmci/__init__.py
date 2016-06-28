@@ -72,9 +72,10 @@ class Job(Runnable, Identifiable):
     def split(self):
         new_jobs = []
 
+        env_type = type(self.env)
         if len(self.images) == 1 and (
-            self.env is None or (
-                    type(self.env) is list and len(self.env) == 1
+            self.env is None or env_type is dict or (
+                    env_type is list and len(self.env) == 1
                 )
         ):
 
