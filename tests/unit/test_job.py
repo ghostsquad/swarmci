@@ -1,4 +1,3 @@
-from six import iteritems
 from assertpy import assert_that
 from swarmci import Job
 
@@ -57,3 +56,5 @@ def test_split_given_multiple_env_sets_expect_job_multiplied_by_env_sets():
             actual_env_keys.append(k)
 
     assert_that(actual_env_keys).contains('foo', 'hello')
+
+
