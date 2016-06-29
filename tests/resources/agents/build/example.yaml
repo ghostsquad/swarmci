@@ -1,0 +1,21 @@
+git:
+  url: git+https://my.repo/project.git
+  depth: 3
+
+stages:
+  - my-first-stage:
+      greenjob:
+        image: test
+        tasks:
+          - /bin/echo "greenjob"
+      yellowjob:
+        image: test
+        task: /bin/echo "yellowjob"
+  - my-second-stage:
+      redjob:
+        image: test
+        tasks:
+          - /bin/echo "redjob"
+      bluejob:
+        image: test
+        task: /bin/echo "bluejob"

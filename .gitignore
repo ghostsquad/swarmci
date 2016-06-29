@@ -9,7 +9,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
-build/
+/swarmci/build/
+/build/
 develop-eggs/
 dist/
 downloads/
