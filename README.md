@@ -3,8 +3,10 @@ Swarm CI
 
 ## Architecture
 
+![swarmci overview](docs/swarmci.png)
+
 * Requires Docker 1.12 or greater
-* Requires Consul for service discovery
+* Requires Redis for Task Queuing and Coordination
 
 The basic idea of Swarm CI is to leverage Docker Swarm to run builds and tests within containers in an easy, distributed, parallel and fast way.
 
