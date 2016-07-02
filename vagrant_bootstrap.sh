@@ -56,7 +56,7 @@ else
     docker run -d swarm join --advertise=172.85.0.102:2375 consul://172.85.0.100:8500
 fi
 
-docker -H :4000 info
+#docker -H :4000 info
 
 # to test that everything is working, the prior command should show 2 healthy nodes
 # deploy a lightweight container to every node with (run twice):
