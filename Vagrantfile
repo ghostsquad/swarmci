@@ -17,6 +17,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.vbguest.auto_update = false
 
+    config.vm.synced_folder '.', '/vagrant', disabled: true
+
     config.hostmanager.enabled = true
     config.hostmanager.manage_host = true
     config.hostmanager.manage_guest = true
