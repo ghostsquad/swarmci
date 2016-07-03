@@ -1,7 +1,9 @@
 #!/bin/bash
 
-sudo yum remove docker-engine -y
+sudo yum install epel-release
 sudo yum update -y
+sudo yum install python34
+sudo easy_install pip
 sudo curl -fsSL https://test.docker.com/ | sh
 sudo usermod -aG docker vagrant
 
@@ -48,7 +50,7 @@ sudo systemctl start docker.service
 sleep 3
 
 if [ `cat /etc/hostname` == "manager" ]; then
-    docker run -d -p 8500:8500 --name=consul progrium/consul -server -bootstrap
+    docker run -d -p 8500:8500 --name=consul --restart=always progrium/consul -server -bootstrap
     docker run -d -p 4000:4000 swarm manage -H :4000 --replication --advertise 172.85.0.100:4000 consul://172.85.0.100:8500
 elif [ `cat /etc/hostname` == "node1" ]; then
     docker run -d swarm join --advertise=172.85.0.101:2375 consul://172.85.0.100:8500
