@@ -1,27 +1,35 @@
 import time
 import copy
 from uuid import uuid4
-from six import iteritems
-from .exceptions import (RunnableException, IdentifiableException, BuildAgentException)
+from swarmci.util import get_logger
+from .exceptions import InvalidOperationException
 
 
-class Runnable(object):
-    def __init__(self, **kwargs):
+class Task(object):
+    def __init__(self, name):
+        self.logger = get_logger(__name__)
+        self.id = str(uuid4())
+        self.name = name
+        if self.name is None:
+            raise ValueError('an identifiable object must have a name!')
+
         self.start = None
         self.end = None
         self.runtime = None
+        self.success = None
+        self.result = None
 
     def start(self):
         if self.start is not None:
-            raise RunnableException('task already started.')
+            raise InvalidOperationException('task already started.')
         self.start = time.time()
 
     def stop(self):
         if self.start is None:
-            raise RunnableException('task cannot be stopped without being started first.')
+            raise InvalidOperationException('task cannot be stopped without being started first.')
 
         if self.end is not None:
-            raise RunnableException('task has already been stopped.')
+            raise InvalidOperationException('task has already been stopped.')
 
         self.end = time.time()
         self.runtime = self.start - self.end
@@ -33,25 +41,20 @@ class Runnable(object):
         self.end()
 
 
-class Identifiable(object):
-    def __init__(self, **kwargs):
-        self.id = str(uuid4())
-        self.name = kwargs.pop('name', None)
-        if self.name is None:
-            raise IdentifiableException('an identifiable object must have a name!')
-
-
-class Job(Runnable, Identifiable):
+class Job(Task):
     def __init__(self,
+                 name,
                  images,
                  tasks,
                  clone=True,
                  env=None,
                  build=None,
                  after_failure=None,
-                 finally_task=None,
-                 **kwargs):
-        super(Job, self).__init__(**kwargs)
+                 finally_task=None):
+
+        super(Job, self).__init__(name)
+
+        self.logger = get_logger(__name__)
 
         if type(images) is not list:
             images = [images]
@@ -74,11 +77,10 @@ class Job(Runnable, Identifiable):
 
         env_type = type(self.env)
         if len(self.images) == 1 and (
-            self.env is None or env_type is dict or (
-                    env_type is list and len(self.env) == 1
+                            self.env is None or env_type is dict or (
+                                env_type is list and len(self.env) == 1
                 )
         ):
-
             return [self]
 
         base_clone = copy.deepcopy(self)
@@ -104,28 +106,13 @@ class Job(Runnable, Identifiable):
         return new_jobs
 
 
-class Task(Runnable, Identifiable):
-    def __init__(self, **kwargs):
-        super(Task, self).__init__(**kwargs)
+class Stage(Task):
+    def __init__(self, name, jobs):
+        super(Stage, self).__init__(name)
 
+        self.logger = get_logger(__name__)
 
-class Stage(Runnable, Identifiable):
-    def __init__(self, jobs, **kwargs):
-        super(Stage, self).__init__(**kwargs)
+        if jobs is None or type(jobs) is not list:
+            raise ValueError('jobs must be a list!')
 
-        if jobs is None or type(jobs) is not dict:
-            raise BuildAgentException('jobs within a stage must be a dictionary!')
-
-        self.jobs = []
-        for name, _job in iteritems(jobs):
-
-            f = _job.pop('finally', None)
-            if f is not None:
-                _job['finally_task'] = f
-
-            self.jobs.append(Job(
-                images=_job.pop('images', _job.pop('image', None)),
-                tasks=_job.pop('tasks', _job.pop('task', None)),
-                name=name,
-                **_job
-            ))
+        self.jobs = jobs

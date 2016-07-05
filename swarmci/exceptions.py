@@ -20,14 +20,9 @@ class TaskException(SwarmCIException):
         super(TaskException, self).__init__(*args, **kwargs)
 
 
-class RunnableException(SwarmCIException):
+class InvalidOperationException(SwarmCIException):
     def __init__(self, *args, **kwargs):
-        super(RunnableException, self).__init__(*args, **kwargs)
-
-
-class IdentifiableException(SwarmCIException):
-    def __init__(self, *args, **kwargs):
-        super(IdentifiableException, self).__init__(*args, **kwargs)
+        super(InvalidOperationException, self).__init__(*args, **kwargs)
 
 
 class BuildAgentException(SwarmCIException):
