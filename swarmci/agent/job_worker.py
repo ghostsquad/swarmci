@@ -17,5 +17,6 @@ class JobWorker(Thread):
         """
         while True:
             job = self.queue.get()
-            self._run_job(job)
+            result = self._run_job(job)
+            job.result = result
             self.queue.task_done()

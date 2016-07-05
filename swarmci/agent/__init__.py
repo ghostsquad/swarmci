@@ -91,6 +91,12 @@ def run_stage(stage, run_job_func=run_job, max_workers=None):
     # Causes the main thread to wait for the queue to finish processing all the tasks
     queue.join()
 
+    for job in stage.jobs:
+        if not job.result:
+            return False
+
+    return True
+
 
 def run_stages(stages, run_stage_func=run_stage):
     """

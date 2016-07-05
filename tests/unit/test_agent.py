@@ -1,23 +1,9 @@
-import requests
-import requests_mock
 import pytest
 import mock
 import swarmci.agent as build_agent
 from assertpy import assert_that
 from swarmci import Stage, Job
 from tests.conftest import example_yaml_path
-
-publish_url = "mock://test.com"
-
-
-@pytest.fixture(scope='function')
-def mock_adapter():
-    session = requests.Session()
-    adapter = requests_mock.Adapter()
-    session.mount('mock', adapter)
-    adapter.register_uri('POST', publish_url, headers={'Content-Type': 'application/json'})
-
-    return adapter
 
 
 def test_create_stages_given_yaml_expect_stage_objects_returned():
@@ -67,3 +53,28 @@ def test_run_stage_given_multiple_jobs_expect_run_all():
     run_job_mock.assert_has_calls(expected_calls)
 
 
+@pytest.mark.parametrize(argnames=['side_effect', 'expectation'], argvalues=[
+    [[False, True], False],
+    [[True, False], False],
+    [[True, True], True]
+])
+def test_run_stage_given_variable_job_return_expect_stage_return_on_failed_jobs(side_effect,
+                                                                                expectation):
+    """If any job fails, the whole stage should fail"""
+    jobs = [
+        Job(name='test1', images='foo', tasks='foo'),
+        Job(name='test2', images='foo', tasks='foo')
+    ]
+
+    stage = Stage(
+        name='test_stage',
+        jobs=jobs
+    )
+
+    print(side_effect)
+
+    run_job_mock = mock.Mock(side_effect=side_effect)
+
+    result = build_agent.run_stage(stage, run_job_func=run_job_mock)
+
+    assert_that(result, "because first job failed.").is_equal_to(expectation)
