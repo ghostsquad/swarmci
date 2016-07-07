@@ -101,7 +101,6 @@ bar-job:
 vagrant up
 vagrant ssh manager
 pushd /vagrant
-python setup.py install
-python demo.py
-
+python setup.py install --force
+python swarmci/agent/__init__.py
 ```

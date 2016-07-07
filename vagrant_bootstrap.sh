@@ -50,6 +50,11 @@ sudo systemctl start docker.service
 sleep 3
 
 if [ `cat /etc/hostname` == "manager" ]; then
+    sudo yum install -y epel-release
+    sudo yum install -y python34
+    curl -O https://bootstrap.pypa.io/get-pip.py
+    sudo /usr/bin/python3.4 get-pip.py
+
     docker run -d -p 8500:8500 --name=consul --restart=always progrium/consul -server -bootstrap
     docker run -d -p 4000:4000 swarm manage -H :4000 --replication --advertise 172.85.0.100:4000 consul://172.85.0.100:8500
 elif [ `cat /etc/hostname` == "node1" ]; then

@@ -1,8 +1,10 @@
 import pytest
 import mock
 import swarmci.agent as build_agent
+from docker import Client
 from assertpy import assert_that
-from swarmci import Stage, Job
+from stage import Stage
+from job import Job
 from tests.conftest import example_yaml_path
 
 
@@ -70,8 +72,6 @@ def test_run_stage_given_variable_job_return_expect_stage_return_on_failed_jobs(
         name='test_stage',
         jobs=jobs
     )
-
-    print(side_effect)
 
     run_job_mock = mock.Mock(side_effect=side_effect)
 

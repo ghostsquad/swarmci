@@ -1,11 +1,14 @@
 import yaml
-import asyncio
-from docker import Client
-from queue import Queue
+import logging
+import sys
+from os import path
 from swarmci.util import get_logger
 from swarmci.exceptions import BuildAgentException
-from swarmci import Stage, Job
-from swarmci.agent.job_worker import JobWorker
+from swarmci.stage import Stage
+from swarmci.job import Job
+from swarmci.runners.strategies.stop_on_failure import stop_on_failure
+from swarmci.runners.strategies.multi_threaded import run_multithreaded
+from swarmci.runners import stage, job, docker_exec
 
 logger = get_logger(__name__)
 
@@ -16,8 +19,11 @@ def create_stages(yaml_path):
     :param yaml_path:
     :return:
     """
+    logger.debug('opening %s', yaml_path)
     with open(yaml_path, 'r') as f:
         data = yaml.load(f)
+
+    logger.debug('yaml file loaded')
 
     _stages = data.get('stages', None)
     if _stages is None:
@@ -51,67 +57,25 @@ def create_stages(yaml_path):
     return stages
 
 
-def run_job(job):
-    """
-    Running a job means to
-    1. run a docker image in the swarm
-    3. wait for job event specifying that the container has started, noting what node
-    4. exec all tasks of the job within the container
-    5. stop task execution if any* task fails
-    :return: bool
-    """
-    raise NotImplementedError
+def main():
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.INFO,
+        format="%(asctime)s (%(threadName)-10s) [%(levelname)8s] - %(message)s")
 
+    stages = create_stages(path.abspath('.swarmci'))
 
-def run_stage(stage, run_job_func=run_job, max_workers=None):
-    """
-    Given a number of jobs, we want to run all jobs asynchronously.
-    Our return value should be true if all jobs succeed
-    or false if any job fails.
-    :param max_workers: defaults to number of jobs in the stage
-    :param stage:
-    :param run_job_func:
-    :return: bool
-    """
+    docker_runner = docker_exec.DockerRunner(image='python:alpine')
+    task_runner = docker_exec.DockerExecRunner(docker_runner=docker_runner)
+    job_runner = job.JobRunner(run_all_strategy=run_multithreaded, task_runner=task_runner)
+    stage_runner = stage.StageRunner(run_all_strategy=stop_on_failure, job_runner=job_runner)
 
-    if max_workers is None:
-        max_workers = len(stage.jobs)
+    logger.debug('starting stages')
+    result = stage_runner.run_all(stages)
+    if result:
+        logger.info('all stages completed successfully!')
+    else:
+        logger.error('some stages did not complete successfully. :(')
 
-    queue = Queue()
-    # Create worker threads
-    for x in range(max_workers):
-        worker = JobWorker(queue, run_job_func)
-        # Setting daemon to True will let the main thread exit even though the workers are blocking
-        worker.daemon = True
-        worker.start()
-    # Put the tasks into the queue
-    for job in stage.jobs:
-        logger.info('Queueing {name} ({id})'.format(name=job.name, id=job.id))
-        queue.put(job)
-    # Causes the main thread to wait for the queue to finish processing all the tasks
-    queue.join()
-
-    for job in stage.jobs:
-        if not job.result:
-            return False
-
-    return True
-
-
-def run_stages(stages, run_stage_func=run_stage):
-    """
-
-    :param stages:
-    :param run_stage_func:
-    """
-    run = True
-
-    for stage in stages:
-        logger.info('running stage %s', stage.name)
-        if run:
-            result = run_stage_func(stage.jobs)
-            if not result:
-                logger.info('stage %s failed! skipping subsequent stages...', stage.name)
-                run = False
-        else:
-            logger.info('skipping stage %s, previous stage failed', stage.name)
+if __name__ == '__main__':
+    main()

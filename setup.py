@@ -69,18 +69,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'click==6.6',
-        'Flask==0.11.1',
-        'itsdangerous==0.24',
-        'Jinja2==2.8',
-        'jsonpickle==0.9.3',
-        'MarkupSafe==0.23',
-        'pbr==1.10.0',
-        'pluggy==0.3.1',
-        'py==1.4.31',
-        'requests==2.10.0',
-        'PyYAML==3.11',
-        'Werkzeug==0.11.10'
+        'PyYAML==3.11'
     ],
 
     # List additional groups of dependencies here (e.g. development
