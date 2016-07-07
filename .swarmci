@@ -1,14 +1,14 @@
 stages:
-  - foo-stage:
-      bar-job:
+  - mystage:
+      myjob:
         image: python:alpine
         env:
           hello: world
         tasks:
-          - "/bin/sh -c 'echo \"hello from foo-stage bar-job\"'"
+          - "/bin/sh -c 'echo \"hello from mystage, myjob in $HOSTNAME\"'"
         after_failure: /bin/echo "this runs if any script task fails"
         finally: /bin/echo "this runs regardless of the result of the script tasks"
-  - bar-stage:
+  - another_stage:
       job1:
          image: foo
-         task: /bin/sh -c 'echo "hello from bar-stage, job1"'
+         task: /bin/sh -c 'echo "hello from another_stage-stage, job1 in $HOSTNAME"'

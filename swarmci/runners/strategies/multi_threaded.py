@@ -17,7 +17,7 @@ def run_multithreaded(things, func, name=None, max_workers=None):
     queue.total = len(things)
 
     for task in things:
-        logger.info('Queueing {name} ({id})'.format(name=task.name, id=task.id))
+        logger.debug('Queueing {name} ({id})'.format(name=task.name, id=task.id))
         queue.put(task)
 
     # Create worker threads

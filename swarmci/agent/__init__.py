@@ -63,6 +63,8 @@ def main():
         level=logging.INFO,
         format="%(asctime)s (%(threadName)-10s) [%(levelname)8s] - %(message)s")
 
+    logging.getLogger('requests').setLevel(logging.WARNING)
+
     stages = create_stages(path.abspath('.swarmci'))
 
     docker_runner = docker_exec.DockerRunner(image='python:alpine')
