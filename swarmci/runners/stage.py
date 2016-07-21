@@ -3,6 +3,7 @@ from swarmci.runners import TaskRunner
 
 logger = get_logger(__name__)
 
+
 class StageRunner(TaskRunner):
     def __init__(self, job_runner, run_all_strategy):
         super(StageRunner, self).__init__(run_all_strategy, 'stage')

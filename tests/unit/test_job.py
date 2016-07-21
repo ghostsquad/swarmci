@@ -1,5 +1,5 @@
 from assertpy import assert_that
-from job import Job
+from swarmci.job import Job
 
 
 def test_split_given_multiple_images_expect_job_multiplied_by_images():
