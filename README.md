@@ -83,3 +83,11 @@ python swarmci/agent/__init__.py
 ```
 python3.5 runtox.py -e linting,py35
 ```
+
+or using docker
+
+```
+docker build -t swarmci . 
+docker build -f Dockerfile.test -t swarmci:test .        
+docker run -it swarmci:test
+```

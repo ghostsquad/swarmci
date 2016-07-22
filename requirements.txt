@@ -1,6 +1,0 @@
-backports.ssl-match-hostname==3.5.0.1
-docker-py==1.8.1
-PyYAML==3.11
-requests==2.10.0
-six==1.10.0
-websocket-client==0.37.0
