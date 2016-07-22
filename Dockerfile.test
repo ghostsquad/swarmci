@@ -1,0 +1,3 @@
+FROM swarmci
+RUN pip install --no-cache-dir -e ".[test]"
+CMD [ "python", "-m", "pytest", "tests/" ]

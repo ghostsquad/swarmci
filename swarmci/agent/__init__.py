@@ -25,34 +25,37 @@ def create_stages(yaml_path):
 
     logger.debug('yaml file loaded')
 
-    _stages = data.get('stages', None)
-    if _stages is None:
+    stages_from_yaml = data.get('stages', None)
+    if stages_from_yaml is None:
         raise BuildAgentException('[stages] key not found in yaml file!')
 
-    if type(_stages) is not list:
+    if type(stages_from_yaml) is not list:
         raise BuildAgentException('[stages] should be a list in the yaml file!')
 
     stages = []
-    for _stage in _stages:
-        stage_name = list(_stage)[0]
+    for _stage in stages_from_yaml:
+        stage_name = _stage.keys()[0]
+        # each stage should be a dictionary with 1 key (the name of the stage).
+        # the value should be a list of jobs.
 
         jobs = []
-        for job_name, _job in _stage[stage_name].items():
-            f = _job.pop('finally', None)
+        for _job in _stage[stage_name]:
+            # each job should be a dictionary with 1 key (the name of the job).
+            # the value should be a dictionary containing the job details
+            job_name = _job.keys()[0]
+            job_details = _job[job_name]
+            finally_task = job_details.pop('finally', None)
             if f is not None:
-                _job['finally_task'] = f
+                job_details['finally_task'] = finally_task
 
-            job = Job(
+            jobs.append(Job(
                 images=_job.pop('images', _job.pop('image', None)),
                 tasks=_job.pop('tasks', _job.pop('task', None)),
                 name=job_name,
                 **_job
-            )
+            ))
 
-            jobs.append(job)
-
-        st = Stage(name=stage_name, jobs=jobs)
-        stages.append(st)
+        stages.append(Stage(name=stage_name, jobs=jobs))
 
     return stages
 
