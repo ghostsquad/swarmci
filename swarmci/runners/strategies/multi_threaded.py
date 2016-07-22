@@ -85,6 +85,6 @@ class JobWorker(threading.Thread):
             except Empty:
                 sleep(0.2)
             except Exception:
-                self.logger.exception(exc_info=True)
+                self.logger.exception("Unhandled Exception Occurred", exc_info=True)
                 job.result = False
                 self.queue.completed += 1

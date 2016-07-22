@@ -48,18 +48,9 @@ def create_stages(yaml_path):
         for _job in _stage[stage_name]:
             # each job should be a dictionary with 1 key (the name of the job).
             # the value should be a dictionary containing the job details
-            job_name = list(_job)[0]
-            job_details = _job[job_name]
-            finally_task = job_details.pop('finally', None)
-            if f is not None:
-                job_details['finally_task'] = finally_task
-
-            jobs.append(Job(
-                images=_job.pop('images', _job.pop('image', None)),
-                tasks=_job.pop('tasks', _job.pop('task', None)),
-                name=job_name,
-                **_job
-            ))
+            _job['images'] = _job.pop('images', _job.pop('image', None))
+            _job['tasks'] = _job.pop('tasks', _job.pop('task', None))
+            jobs.append(Job(**_job))
 
         stages.append(Stage(name=stage_name, jobs=jobs))
 
@@ -89,9 +80,11 @@ def main(args):
         format="%(asctime)s (%(threadName)-10s) [%(levelname)8s] - %(message)s")
 
     if args.demo:
-        swarmci_file = os.path.join(here, '.swarmci')
+        swarmci_file = os.path.join(here, '../.swarmci')
     else:
         swarmci_file = args.file
+
+    swarmci_file = os.path.abspath(swarmci_file)
 
     if not swarmci_file:
         msg = 'must provide either --file or --demo'
@@ -100,7 +93,7 @@ def main(args):
 
     logging.getLogger('requests').setLevel(logging.WARNING)
 
-    stages = create_stages(path.abspath('.swarmci'))
+    stages = create_stages(swarmci_file)
 
     docker_runner = docker_exec.DockerRunner(image='python:alpine')
     task_runner = docker_exec.DockerExecRunner(docker_runner=docker_runner)

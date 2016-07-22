@@ -39,7 +39,6 @@ stages:
           buildno: 1
       env:
         say_something: hello from 
-      clone: False
       tasks:
         - /bin/bash -c 'echo "$say_something $HOSTNAME"'
       after_failure: /bin/echo "this runs if any script task fails"
