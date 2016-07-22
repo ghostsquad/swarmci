@@ -40,7 +40,7 @@ def create_stages(yaml_path):
 
     stages = []
     for _stage in stages_from_yaml:
-        stage_name = _stage.keys()[0]
+        stage_name = list(_stage)[0]
         # each stage should be a dictionary with 1 key (the name of the stage).
         # the value should be a list of jobs.
 
@@ -48,7 +48,7 @@ def create_stages(yaml_path):
         for _job in _stage[stage_name]:
             # each job should be a dictionary with 1 key (the name of the job).
             # the value should be a dictionary containing the job details
-            job_name = _job.keys()[0]
+            job_name = list(_job)[0]
             job_details = _job[job_name]
             finally_task = job_details.pop('finally', None)
             if f is not None:
