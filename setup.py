@@ -93,7 +93,8 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'PyYAML==3.11'
+        'PyYAML==3.11',
+        'docker-py'
     ],
 
     # List additional groups of dependencies here (e.g. development
