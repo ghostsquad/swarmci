@@ -1,11 +1,12 @@
 import tarfile
 from io import BytesIO
-from os import path
+import os
 from uuid import uuid4
 from docker import Client as DockerClient
 from swarmci.util import get_logger
 
 logger = get_logger(__name__)
+
 
 class DockerExecRunner(object):
     def __init__(self, docker_runner):
@@ -17,8 +18,8 @@ class DockerExecRunner(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-    def run_all(self, tasks):
-        with self.docker_runner.start_container() as cn:
+    def run_all(self, tasks, env=None):
+        with self.docker_runner.start_container(env) as cn:
             for task in tasks:
                 logger.info('starting task [%s]', task.name)
                 result = self.run(task, cn)
@@ -62,9 +63,9 @@ class DockerRunner(object):
         self.host_config = self.docker.create_host_config(**kwargs)
         self.id = None
 
-    def start_container(self):
+    def start_container(self, env):
         """create a running container (just sleeps)"""
-        cn = container(self.image, self.host_config, self.name, self.docker)
+        cn = container(self.image, self.host_config, self.name, self.docker, env=env)
         return cn
 
 
@@ -72,7 +73,7 @@ class container(object):
     """
     A class representing a running container
     """
-    def __init__(self, image, host_config, name, docker, remove=True):
+    def __init__(self, image, host_config, name, docker, env, remove=True):
         self.docker = docker
 
         self.name = name or 'swarmci_' + str(uuid4())
@@ -81,9 +82,13 @@ class container(object):
 
         cmd = '/bin/sh -c "while true; do sleep 1000; done"'
 
+        cn_env = os.environ.copy()
+        cn_env.update(env)
+
         self.id = self.docker.create_container(image=image,
                                                host_config=host_config,
                                                name=name,
+                                               environment=cn_env,
                                                command=cmd)['Id']
 
         self.docker.start(self.id)
@@ -109,8 +114,8 @@ class container(object):
         :param src:
         :param dest:
         """
-        src = path.abspath(src)
-        arcname = path.basename(src.rstrip('/'))
+        src = os.path.abspath(src)
+        arcname = os.path.basename(src.rstrip('/'))
 
         logger.debug('attempting to copy %s to %s', src, dest)
 

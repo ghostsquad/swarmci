@@ -15,4 +15,4 @@ class JobRunner(TaskRunner):
         """Runs all tasks within the same container for a given job"""
         logger.info("starting job %s", job.name)
         with self.task_runner as t:
-            return t.run_all(job.tasks)
+            return t.run_all(job.tasks, env=job.env)
