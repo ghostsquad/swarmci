@@ -6,6 +6,7 @@ stages:
         say_something: hello from
       tasks:
         - /bin/sh -c 'echo "$say_something $HOSTNAME"'
+        - /bin/sh -c 'echo "second task within my_job in $HOSTNAME"'
       after_failure: /bin/echo "this runs if any script task fails"
       finally_task: /bin/echo "this runs regardless of the result of the script tasks"
     - name: another_job
