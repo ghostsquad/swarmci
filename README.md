@@ -72,9 +72,10 @@ bar-job:
 ```
 vagrant up
 vagrant ssh manager
-pushd /vagrant
-python setup.py install --force
-python swarmci/agent/__init__.py
+git clone https://github.com/ghostsquad/swarmci.git
+cd swarmci
+python3 setup.py install --force
+python3 -m swarmci --demo
 ```
 
 ## Running Tests

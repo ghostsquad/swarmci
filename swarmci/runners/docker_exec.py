@@ -52,8 +52,7 @@ class DockerRunner(object):
         self.docker = DockerClient(base_url=url, version='1.24')
         self.image = image
 
-        if not name:
-            self.name = 'formula_test_' + str(uuid4())
+        self.name = name
 
         self.remove = remove
 
@@ -75,7 +74,9 @@ class container(object):
     """
     def __init__(self, image, host_config, name, docker, remove=True):
         self.docker = docker
-        self.name = name
+
+        self.name = name or 'swarmci_' + str(uuid4())
+
         self.remove = remove
 
         cmd = '/bin/sh -c "while true; do sleep 1000; done"'
