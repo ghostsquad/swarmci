@@ -11,8 +11,8 @@ stages:
     - name: another_job
       image: python:alpine
       tasks:
-        - /bin/sh -c 'echo "hello again from $HOSTNAME"'
+        - /bin/sh -c 'echo "another_job says hello from $HOSTNAME"'
   - second_stage:
     - name: default_job_in_second_stage
       tasks:
-        - /bin/sh -c 'echo "look my, second stage job"'
+        - /bin/sh -c 'echo "look my, second stage job running in $HOSTNAME"'
