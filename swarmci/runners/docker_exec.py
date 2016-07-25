@@ -21,7 +21,7 @@ class DockerExecRunner(object):
     def run_all(self, tasks, env=None):
         with self.docker_runner.start_container(env) as cn:
             for task in tasks:
-                logger.info('starting task [%s]', task.name)
+                logger.info('starting task [%s] in %s', task.name, cn.id)
                 result = self.run(task, cn)
                 if not result:
                     logger.error('failure detected, skipping further tasks')
