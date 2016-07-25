@@ -83,7 +83,8 @@ class container(object):
         cmd = '/bin/sh -c "while true; do sleep 1000; done"'
 
         cn_env = os.environ.copy()
-        cn_env.update(env)
+        if env is not None:
+            cn_env.update(env)
 
         self.id = self.docker.create_container(image=image,
                                                host_config=host_config,
