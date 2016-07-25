@@ -10,7 +10,7 @@ if __name__ == '__main__':
         logging.basicConfig(
             stream=sys.stdout,
             level=logging.INFO,
-            format="%(asctime)s %(message)s")
+            format="%(asctime)s (%(threadName)9s) %(message)s")
         main(sys.argv[1:])
     except Exception as e:
         traceback.print_exc()
