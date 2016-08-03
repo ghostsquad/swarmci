@@ -109,3 +109,26 @@ docker build -t swarmci .
 docker build -f Dockerfile.test -t swarmci:test .        
 docker run -it swarmci:test
 ```
+
+## RoadMap
+
+### Immediate
+Improved CLI
+  - The output is very hard to read with jobs run in parallel
+  - The output in general needs some love.
+     - Color output (https://github.com/jkbrzt/httpie#colors-and-formatting)
+User Interface
+API
+Data Persistence
+
+### Later
+Caching (like https://docs.travis-ci.com/user/caching/)
+Docker Builds
+Docker Compose
+Docker Push
+Secrets Management (For private repositories)
+Automatic Git Cloning (requires the secrets management above)
+Job Matrix (like https://docs.travis-ci.com/user/customizing-the-build/#Build-Matrix)
+Timeouts
+Manually Started Stages/Jobs
+Build Diff (Compare build output, commits, etc) *This is a feature I haven't seen much anywhere
