@@ -5,6 +5,7 @@ SwarmCI in it's currently stage is an CI/CD extension. You can extend your exist
 
 ## Inspiration
 This project inspired me because of the problems I've faced with conventional CI/CD platforms like Jenkins, Bamboo, Teamcity.
+
 1. Agents were java/other applications running on a VM with no isolation between the build and the agent, sometimes causing hard to reproduce issues.
 2. Agent machines needed to be customized with differing capabilities (SDKs, versions, libraries, resources like cpu/mem, etc). This is complex, usually requiring your OPS team to setup, maintain.
 3. Binding builds to specific agents which have the required capabilities is wasteful, as you must wait for an idle agent with your requirements before your build would run.
@@ -14,6 +15,7 @@ This project inspired me because of the problems I've faced with conventional CI
 
 ## What it does
 SwarmCI is CI extension as well as (future) a stand-alone CI/CD platform. You can use SwarmCI to extend an existing CI system (Bamboo, TeamCity, Jenkins, etc) with a few steps:
+
 1. Setup a Docker Swarm.
 2. Converting existing build tasks, stages, and jobs to a single `.swarmci` file.
 3. Configure a single task in your build to run a single command to delegate work to your Docker Swarm:
