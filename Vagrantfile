@@ -17,7 +17,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.vbguest.auto_update = false
 
-    config.vm.synced_folder '.', '/vagrant', disabled: false
+    config.vm.synced_folder ".", "/opt/swarmci", type: "rsync", owner: "vagrant", group: "vagrant",
+                          rsync__args: ["--recursive", "--links", "--perms", "--times", "--delete", "--filter=:- .gitignore"]
 
     config.hostmanager.enabled = true
     config.hostmanager.manage_host = true

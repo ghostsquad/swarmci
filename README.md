@@ -92,10 +92,7 @@ bar-job:
 ```
 vagrant up
 vagrant ssh manager
-git clone https://github.com/ghostsquad/swarmci.git
-cd swarmci
-python3 setup.py install --force
-python3 -m swarmci --demo
+/opt/swarmci/run-demo.sh
 ```
 
 ## Running Tests
