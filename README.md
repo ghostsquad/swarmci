@@ -1,28 +1,30 @@
 Swarm CI
 ========
 
-SwarmCI in it's currently stage is an CI/CD extension. You can extend your existing build system (jenkins, bamboo, teamcity), with parallel, distributing, isolated build tasks leveraging Docker Swarm.
+SwarmCI in it's currently stage (super alpha) is an CI/CD extension. You can extend your existing build system (jenkins, bamboo, teamcity), with parallel, distributing, isolated build tasks by leveraging a Docker Swarm.
 
 ## Inspiration
 This project inspired me because of the problems I've faced with conventional CI/CD platforms like Jenkins, Bamboo, Teamcity.
 
-### In-House CI/CD Systems like Bamboo, Teamcity and Jenkins
+### Local platforms (Bamboo, Teamcity and Jenkins, ...)
 
-1. Agents were java/other applications running on a VM with no isolation between the build and the agent, sometimes causing hard to reproduce issues.
-2. Agent machines needed to be customized with differing capabilities (SDKs, versions, libraries, resources like cpu/mem, etc). This is complex, usually requiring your OPS team to setup, maintain.
-3. Binding builds to specific agents which have the required capabilities is wasteful, as you must wait for an idle agent with your requirements before your build would run.
-3. An agent is no longer "untouched" after the first build it runs. State changes between builds can cause unexpected failures or worse, false-successes (unless the machine was reprovisioned after every build, not an easy or cheap thing to do).
-4. Build agents require licensing which can be very expensive (in addition to the hardware).
-5. Build agents are often underutilized. Either idle, or running builds that have many steps and can take awhile, while not fully utilizing all CPU/Mem/IO/Network resources.
+1. Agents have no isolation from the build tasks, sometimes causing hard to reproduce issues involving subprocesses and limitations of the build agent.
+2. Agent VM/Containers need to be customized with differing capabilities (SDKs, versions, libraries, resources like cpu/mem, etc). 
+    * This requires either an Ops team to maintain the permutations of build capabilities, or
+    * Requires each build to install it's dependencies at build time, resulting in longer build times
+3. Build-Agent binding, required when builds need specific things pre-installed, is wasteful as you must wait for an idle agent that meets the build requirements before the build will run.
+3. An agent is no longer "untouched" after the first build it runs. State changes between builds can cause unexpected failures or worse, false-successes (unless the machine was re-provisioned after every build, not an easy or cheap thing to do).
+4. Adding parallelism to your build pipeline requires licensing of additional agents, which can be very expensive (in addition to the hardware).
+5. Build agents are often underutilized, either idle, or running builds with low system requirements.
 
-### Online CI/CD Systems like TravisCI, CircleCI, CodeShip
+### Online Platforms (TravisCI, CircleCI, CodeShip, ...)
 
-1. Base images/os availability is limited. With SwarmCI, you can choose your base image, preloaded with whatever dependencies you need, resulting with fewer setup/dependency steps, in turn making your builds faster and simpler.
-2. Resources, like CPU/Memory/IO, can be limited and can have limited visibility, offering no insight into build bottlenecks or transient failures.
+1. Base images/os availability is limited. With SwarmCI, you can choose your base image, pre-loaded with whatever dependencies you need, resulting in fewer setup/dependency steps, in turn making your builds faster and simpler.
+2. Being assigned arbitrary defaults or limited system resources can cause pipeline bottlenecks. In addition, it might be hard to realize you have a bottleneck or are being throttled.d visibility, offering no insight into build bottlenecks or transient failures.
 3. Cost can still be significantly reduced, as an example, by putting your Docker Swarm on AWS Spot Instances.
 
 ## What it does
-SwarmCI is CI extension as well as (future) a stand-alone CI/CD platform. You can use SwarmCI to extend an existing CI system (Bamboo, TeamCity, Jenkins, etc) with a few steps:
+You can use SwarmCI to extend an existing CI system (Bamboo, TeamCity, Jenkins, etc) with a few steps.
 
 1. Setup a Docker Swarm.
 2. Converting existing build tasks, stages, and jobs to a single `.swarmci` file.
