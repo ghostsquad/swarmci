@@ -1,7 +1,7 @@
 Swarm CI
 ========
 
-SwarmCI in it's currently stage (super alpha) is a CI extension. You can extend your existing build system (jenkins, bamboo, teamcity), with parallel, distributing, isolated build tasks by leveraging a Docker Swarm.
+SwarmCI in it's currently stage (super alpha) is a CI extension. You can extend your existing build system (jenkins, bamboo, teamcity), with parallel, distributed, isolated build tasks by leveraging a Docker Swarm.
 
 [![Demo Video](https://img.youtube.com/vi/Vkcnyc17HVI/0.jpg)](https://www.youtube.com/watch?v=Vkcnyc17HVI)
 
