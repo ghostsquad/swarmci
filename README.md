@@ -8,7 +8,7 @@ SwarmCI in it's currently stage (super alpha) is a CI extension. You can extend 
 ## Inspiration
 This project inspired me because of the problems I've faced with conventional CI platforms like Jenkins, Bamboo, Teamcity.
 
-### Local platforms (Bamboo, Teamcity and Jenkins, ...)
+### Problems with Local platforms (Bamboo, Teamcity and Jenkins, ...)
 
 1. Agents have no isolation from the build tasks, sometimes causing hard to reproduce issues involving subprocesses and limitations of the build agent.
 2. Agent VM/Containers need to be customized with differing capabilities (SDKs, versions, libraries, resources like cpu/mem, etc). 
@@ -19,7 +19,7 @@ This project inspired me because of the problems I've faced with conventional CI
 4. Adding parallelism to your build pipeline requires licensing of additional agents, which can be very expensive (in addition to the hardware).
 5. Build agents are often underutilized, either idle, or running builds with low system requirements.
 
-### Online Platforms (TravisCI, CircleCI, CodeShip, ...)
+### Problems with Online Platforms (TravisCI, CircleCI, CodeShip, ...)
 
 1. Base images/os availability is limited. With SwarmCI, you can choose your base image, pre-loaded with whatever dependencies you need, resulting in fewer setup/dependency steps, in turn making your builds faster and simpler.
 2. Being assigned arbitrary defaults or limited system resources can cause pipeline bottlenecks. In addition, it might be hard to realize you have a bottleneck or are being throttled.d visibility, offering no insight into build bottlenecks or transient failures.
