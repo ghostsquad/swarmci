@@ -4,68 +4,89 @@ import os
 import sys
 import yaml
 from os import path
+from uuid import uuid4
 from swarmci.util import get_logger
-from swarmci.exceptions import BuildAgentException
-from swarmci.stage import Stage
-from swarmci.job import Job
-from swarmci.runners.strategies.stop_on_failure import stop_on_failure
-from swarmci.runners.strategies.multi_threaded import run_multithreaded
-from swarmci.runners import stage, job, docker_exec
+from swarmci.exceptions import SwarmCIException
+from swarmci.task import Task, TaskType
+from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
 
 logger = get_logger(__name__)
 
-script_version = "0.1"
+here = path.abspath(path.dirname(__file__))
+
+# Get version from the VERSION file
+with open(path.join(here, 'VERSION'), encoding='utf-8') as f:
+    version = f.readline().strip()
 
 here = os.path.dirname(os.path.realpath(__file__))
 
 
-def create_stages(yaml_path):
-    """
-
-    :param yaml_path:
-    :return:
-    """
+def load_swarmci_config(yaml_path):
     logger.debug('opening %s', yaml_path)
     with open(yaml_path, 'r') as f:
-        data = yaml.load(f)
+        return yaml.load(f)
 
-    logger.debug('yaml file loaded')
 
-    stages_from_yaml = data.get('stages', None)
+def build_tasks_hierarchy(swarmci_config, docker_runner=DockerRunner):
+    stages_from_yaml = swarmci_config.pop('stages', None)
     if stages_from_yaml is None:
-        raise BuildAgentException('[stages] key not found in yaml file!')
+        raise SwarmCIException('Did not find "stages" key in the .swarmci file.')
+    elif type(stages_from_yaml) is not list:
+        raise SwarmCIException('The value of the "stages" key should be a list in the .swarmci file.')
 
-    if type(stages_from_yaml) is not list:
-        raise BuildAgentException('[stages] should be a list in the yaml file!')
+    stage_tasks = []
+    for stage in stages_from_yaml:
+        job_tasks = []
+        for job in stage['jobs']:
 
-    stages = []
-    for _stage in stages_from_yaml:
-        stage_name = list(_stage)[0]
-        # each stage should be a dictionary with 1 key (the name of the stage).
-        # the value should be a list of jobs.
+            commands = []
+            for cmd in job['commands']:
 
-        jobs = []
-        for _job in _stage[stage_name]:
-            # each job should be a dictionary with 1 key (the name of the job).
-            # the value should be a dictionary containing the job details
-            _job['images'] = _job.pop('images', _job.pop('image', None))
-            _job['tasks'] = _job.pop('tasks', _job.pop('task', None))
-            jobs.append(Job(**_job))
+                def init_command_func(_cmd):
+                    def command_func(*args, **kwargs):
+                        docker_runner.run_in_docker(_cmd, *args, **kwargs)
+                    return command_func
 
-        stages.append(Stage(name=stage_name, jobs=jobs))
+                command_task = Task(cmd, TaskType.COMMAND, exec_func=init_command_func(cmd))
+                commands.append(command_task)
 
-    return stages
+            def init_job_func(image, _commands):
+                def job_func():
+                    runner = docker_runner(image)
+                    runner.run_all(_commands)
+                return job_func
+
+            job_task = Task(job['name'], TaskType.JOB, exec_func=init_job_func(job['image'], commands))
+            job_tasks.append(job_task)
+
+        def init_stage_func(_job_tasks):
+            def stage_func():
+                runner = ThreadedRunner()
+                runner.run_all(_job_tasks)
+            return stage_func
+
+        stage_task = Task(stage['name'], TaskType.STAGE, exec_func=init_stage_func(job_tasks))
+        stage_tasks.append(stage_task)
+
+    def init_build_func(_stage_tasks):
+        def build_func():
+            _runner = SerialRunner()
+            _runner.run_all(_stage_tasks)
+        return build_func
+
+    build_task = Task(str(uuid4()), TaskType.BUILD, exec_func=init_build_func(stage_tasks))
+
+    return build_task
 
 
 def parse_args(args):
     """parse cmdline args and return options to caller"""
     parser = argparse.ArgumentParser(
-        description="CodeBuildr - YAML-based Build Runner")
+        description=("SwarmCI is a CI extension leveraging Docker Swarm to"
+                     "enable parallel, distributed, isolated build tasks."))
 
-    required_args = parser.add_argument_group('required named arguments')
-    required_args.add_argument('--demo', action='store_true')
     parser.add_argument('--version', action='version',
-                        version='%(prog)s {}'.format(script_version))
+                        version='%(prog)s {}'.format(version))
 
     parser.add_argument('--file', action='store', default='.swarmci')
 
@@ -76,13 +97,10 @@ def main(args):
     args = parse_args(args)
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s (%(threadName)-10s) [%(levelname)8s] - %(message)s")
 
-    if args.demo:
-        swarmci_file = os.path.join(here, '../.swarmci')
-    else:
-        swarmci_file = args.file
+    swarmci_file = args.file if args.file else os.path.join(os.getcwd(), '.swarmci')
 
     swarmci_file = os.path.abspath(swarmci_file)
 
@@ -93,17 +111,12 @@ def main(args):
 
     logging.getLogger('requests').setLevel(logging.WARNING)
 
-    stages = create_stages(swarmci_file)
+    swarmci_config = load_swarmci_config(swarmci_file)
+    build_task = build_tasks_hierarchy(swarmci_config)
 
-    docker_runner = docker_exec.DockerRunner(image='python:alpine')
-    task_runner = docker_exec.DockerExecRunner(docker_runner=docker_runner)
-    job_runner = job.JobRunner(run_all_strategy=run_multithreaded, task_runner=task_runner)
-    stage_runner = stage.StageRunner(run_all_strategy=stop_on_failure, job_runner=job_runner)
-
-    logger.debug('starting stages')
-    result = stage_runner.run_all(stages)
-    if result:
+    logger.debug('starting build')
+    build_task.execute()
+    if build_task.successful:
         logger.info('all stages completed successfully!')
     else:
         logger.error('some stages did not complete successfully. :(')
-

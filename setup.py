@@ -16,9 +16,12 @@ import sys
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-#with open(path.join(here, '../README.md'), encoding='utf-8') as f:
-#    long_description = f.read()
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
+# Get version from the VERSION file
+with open(path.join(here, 'swarmci/VERSION'), encoding='utf-8') as f:
+    version = f.readline().strip()
 
 class Tox(TestCommand):
     user_options = [('tox-args=', 'a', "Arguments to pass to tox")]
@@ -47,10 +50,10 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.1.0',
+    version=version,
 
-    description='YAML-based build system, leveraging Docker',
-    #long_description=long_description,
+    description='CI extension leveraging Docker Swarm to enable parallel, distributed, isolated build tasks.',
+    long_description=long_description,
 
     # The project's main homepage.
     url='https://github.com/ghostsquad/swarmci.git',
@@ -75,10 +78,11 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
 
     # What does your project relate to?
-    keywords='docker testing test build ci cd continuous deployment integration',
+    keywords='docker swarm testing test build ci cd continuous deployment integration jenkins bamboo teamcity',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
@@ -93,8 +97,8 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'PyYAML==3.11',
-        'docker-py'
+        'PyYAML>=3.12',
+        'docker-py>=1.10.3'
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -102,13 +106,14 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        'test': ['pytest==2.9.2',
-                 'pytest-cov',
-                 'pytest-html',
-                 'tox==2.3.1',
-                 'assertpy',
-                 'mock',
-                 'requests-mock==1.0.0']
+        'test': ['pytest>=3.0.3',
+                 'pytest-cov>=2.3.1',
+                 'pytest-html>=1.10.1',
+                 'pytest-describe>=0.11.0',
+                 'tox>=2.3.1',
+                 'assertpy>=0.10',
+                 'mock>=2.0.0',
+                 'requests-mock>=1.0.0']
     },
 
     cmdclass={'test': Tox},

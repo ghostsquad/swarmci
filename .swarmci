@@ -1,20 +1,29 @@
 stages:
-  - my_stage:
+  - name: my first stage
+    jobs:
     - name: my_job
       image: python:alpine
       env:
         say_something: hello from
-      tasks:
+      commands:
         - /bin/sh -c 'echo "$say_something $HOSTNAME"'
         - /bin/sh -c 'echo "second task within my_job in $HOSTNAME"'
       after_failure: /bin/echo "this runs if any script task fails"
-      finally_task: /bin/echo "this runs regardless of the result of the script tasks"
+      finally_command: /bin/echo "this runs regardless of the result of the script tasks"
     - name: another_job
       image: python:alpine
-      tasks:
+      commands:
         - /bin/sh -c 'echo "another_job says hello from $HOSTNAME"'
-  - second_stage:
+    finally_job:
+      name: run this job regardless of prior results
+      image: python:alpine
+      env:
+        say_something: this runs last!
+      commands:
+        - /bin/sh -c 'echo "$say_something"'
+  - name: my second stage
+    jobs:
     - name: default_job_in_second_stage
       image: python:alpine
-      tasks:
+      commands:
         - /bin/sh -c 'echo "look my, second stage job running in $HOSTNAME"'

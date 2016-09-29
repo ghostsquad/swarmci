@@ -25,6 +25,21 @@ class InvalidOperationException(SwarmCIException):
         super(InvalidOperationException, self).__init__(*args, **kwargs)
 
 
-class BuildAgentException(SwarmCIException):
+class DockerCommandFailedException(SwarmCIException):
     def __init__(self, *args, **kwargs):
-        super(BuildAgentException, self).__init__(*args, **kwargs)
+        self._output = kwargs.pop('output')
+        self._exit_code = kwargs.pop('exit_code')
+        self._cmd = kwargs.pop('cmd')
+        super(DockerCommandFailedException, self).__init__(*args, **kwargs)
+
+    @property
+    def output(self):
+        return self._output
+
+    @property
+    def exit_code(self):
+        return self._exit_code
+
+    @property
+    def cmd(self):
+        return self._cmd

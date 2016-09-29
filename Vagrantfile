@@ -17,9 +17,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.vbguest.auto_update = false
 
-    config.vm.synced_folder ".", "/opt/swarmci", type: "rsync", owner: "vagrant", group: "vagrant",
-                          rsync__args: ["--recursive", "--links", "--perms", "--times", "--delete", "--filter=:- .gitignore"]
-
     config.hostmanager.enabled = true
     config.hostmanager.manage_host = true
     config.hostmanager.manage_guest = true
@@ -46,6 +43,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define "manager" do |node|
         node.vm.hostname = "manager"
         node.vm.network :private_network, ip: "172.85.0.100"
+        node.vm.synced_folder ".", "/opt/swarmci", type: "rsync", owner: "vagrant", group: "vagrant",
+                  rsync__args: ["--recursive", "--links", "--perms", "--times", "--delete", "--filter=:- .gitignore"]
     end
 
     config.vm.define "node1" do |node|
