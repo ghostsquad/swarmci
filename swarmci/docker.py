@@ -63,7 +63,7 @@ class Container(object):
 
         self.docker.put_archive(self.id, path=dest, data=data)
 
-    def execute(self, cmd, out_func=None):
+    def execute(self, cmd, out_func=(lambda x: None)):
         """
         Prepares a command to be executed within the container
         :param cmd: cmd to run
@@ -71,10 +71,6 @@ class Container(object):
             this func should take a string argument
         :return: nothing. raises an exception if the command fails
         """
-
-        if out_func is None:
-            def out_func(*args):
-                pass
 
         exec_id = self.docker.exec_create(container=self.id, cmd=cmd, tty=True)['Id']
         logger.debug('starting exec [%s] in %s (%s)', cmd, self.name, self.id)
