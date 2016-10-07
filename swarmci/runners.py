@@ -1,8 +1,6 @@
-from concurrent.futures import ThreadPoolExecutor
 from docker import Client as DockerClient
 from swarmci.util import get_logger
 from swarmci.docker import Container
-from swarmci.exceptions import DockerCommandFailedException
 
 logger = get_logger(__name__)
 
@@ -44,15 +42,12 @@ class ThreadedRunner(RunnerBase):
     Success should be set to true only if all tasks were successful.
     """
 
-    def __init__(self, max_workers=None, tpe=None):
-        self.max_workers = max_workers
-        self._tpe = tpe or ThreadPoolExecutor
+    def __init__(self, thread_pool_executor):
+        self._thread_pool_executor = thread_pool_executor
         super().__init__()
 
     def run_all(self, tasks):
-        threads = self.max_workers or len(tasks)
-        pool = self._tpe(threads)
-        results = pool.map(self.run, tasks)
+        results = self._thread_pool_executor.map(self.run, tasks)
         if all(results):
             return True
 

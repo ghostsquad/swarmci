@@ -5,6 +5,7 @@ import sys
 import yaml
 from os import path
 from uuid import uuid4
+from concurrent.futures import ThreadPoolExecutor
 from swarmci.util import get_logger
 from swarmci.exceptions import SwarmCIException
 from swarmci.task import Task, TaskType
@@ -34,6 +35,8 @@ def build_tasks_hierarchy(swarmci_config, docker_runner=DockerRunner):
     elif type(stages_from_yaml) is not list:
         raise SwarmCIException('The value of the "stages" key should be a list in the .swarmci file.')
 
+    thread_pool_executor = ThreadPoolExecutor(max_workers=25)
+
     stage_tasks = []
     for stage in stages_from_yaml:
         job_tasks = []
@@ -61,7 +64,7 @@ def build_tasks_hierarchy(swarmci_config, docker_runner=DockerRunner):
 
         def init_stage_func(_job_tasks):
             def stage_func():
-                runner = ThreadedRunner()
+                runner = ThreadedRunner(thread_pool_executor)
                 runner.run_all(_job_tasks)
             return stage_func
 
@@ -75,6 +78,8 @@ def build_tasks_hierarchy(swarmci_config, docker_runner=DockerRunner):
         return build_func
 
     build_task = Task(str(uuid4()), TaskType.BUILD, exec_func=init_build_func(stage_tasks))
+
+
 
     return build_task
 

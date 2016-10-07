@@ -6,6 +6,7 @@ from docker import Client as DockerClient
 from swarmci.docker import Container
 from swarmci.task import Task
 from swarmci.runners import RunnerBase, SerialRunner, ThreadedRunner, DockerRunner
+from concurrent.futures import ThreadPoolExecutor
 
 
 def create_task_mock(count=1):
@@ -98,7 +99,7 @@ def describe_threaded_runner():
 
     @pytest.fixture(scope='module')
     def runner_fixture():
-        return ThreadedRunner()
+        return ThreadedRunner(thread_pool_executor=ThreadPoolExecutor(max_workers=2))
 
     def describe_run_all_():
         def given_single_task():

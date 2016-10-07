@@ -73,7 +73,7 @@ class Container(object):
         """
 
         if out_func is None:
-            def out_func():
+            def out_func(*args):
                 pass
 
         exec_id = self.docker.exec_create(container=self.id, cmd=cmd, tty=True)['Id']
