@@ -22,7 +22,7 @@ class RunnerBase(object):
 class SerialRunner(RunnerBase):
     """
     Serial is responsible for running all tasks serially.
-    It should only progress to the next task if the previous stage completed successfully.
+    It should only progress to the next task if the previous task completed successfully.
     """
 
     def run_all(self, tasks):
@@ -57,7 +57,7 @@ class ThreadedRunner(RunnerBase):
 class DockerRunner(RunnerBase):
     """
     DockerRunner is responsible for running tasks within a Docker Container.
-    Tasks that return exit code 0 should be marked successful.
+    It is similar to the SerialRunner, in that it also runs tasks serially, and quits if a task fails.
     """
 
     def __init__(self, image, remove=True, url=':4000', env=None, docker=None, cn=None, **kwargs):
