@@ -151,5 +151,7 @@ docker run -it swarmci:test
 ## Terms Explained
 
 `Stage` - Stages are individual sequential steps. Stages provide a mechanism to break a build into multiple chunks of work such as compilation, testing, and deployment. When a Stage executes, all of the Jobs within that Stage begin executing in parallel, greatly reducing its execution time.
+
 `Job` - Jobs are smaller, independent units of work, which can run in parallel. Each job runs in a separate container. Jobs in subsequent stages will not begin executing until all jobs in the previous stage have completed successfully. A single job failure will result in a failed stage (though it does not cause other jobs to stop running).
+
 `Command` - Commands are literal commands run in a common container with the job in which they are defined, and they run in series. A single command failure (exit_code != 0) will halt a job and mark the job as a failure.
