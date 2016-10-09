@@ -13,8 +13,10 @@ from setuptools.command.test import test as TestCommand
 import os
 import sys
 
+
+main_ns = {}
 with open('swarmci/version.py') as f:
-    version = exec(f.read())
+    exec(f.read(), main_ns)
 
 
 class Tox(TestCommand):
@@ -41,7 +43,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version=version,
+    version=main_ns['__version__'],
 
     description='CI extension leveraging Docker Swarm to enable parallel, distributed, isolated build tasks.',
     long_description="",
