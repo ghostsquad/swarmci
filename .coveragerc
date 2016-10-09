@@ -1,3 +1,5 @@
 [run]
 branch = true
 include = swarmci/*
+omit =
+    swarmci/__main__.py
