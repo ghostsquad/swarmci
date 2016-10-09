@@ -85,6 +85,16 @@ class Task(object):
 
 
 class TaskFactory(object):
+    def __init__(self, runners=None):
+        self.runners = {
+            'job': DockerRunner,
+            'stage': ThreadedRunner,
+            'build': SerialRunner
+        }
+
+        if runners:
+            self.runners.update(runners)
+
     def create(self, task_type, *args, **kwargs):
         switcher = {
             TaskType.COMMAND: self.create_command_task,
@@ -96,31 +106,32 @@ class TaskFactory(object):
         func = switcher.get(task_type, lambda: raise_(ValueError("Unknown task_type {}".format(task_type))))
         return func(*args, **kwargs)
 
-    @staticmethod
-    def create_command_task(cmd, run_func=DockerRunner.run_in_docker):
+    def create_command_task(self, cmd, run_func=DockerRunner.run_in_docker):
         def command_func(*args, **kwargs):
             run_func(cmd, *args, **kwargs)
 
         return Task(cmd, TaskType.COMMAND, exec_func=command_func)
 
-    @staticmethod
-    def create_job_task(job, commands, runner=DockerRunner):
+    def create_job_task(self, job, commands):
+        runner = self.runners['job']
+
         def job_func():
             runner(job['image']).run_all(commands)
 
         return Task(job['name'], TaskType.JOB, exec_func=job_func)
 
-    @staticmethod
-    def create_stage_task(stage, jobs, thread_pool_executor):
+    def create_stage_task(self, stage, jobs, thread_pool_executor):
+        runner = self.runners['stage']
+
         def stage_func():
-            runner = ThreadedRunner(thread_pool_executor)
-            runner.run_all(jobs)
+            runner(thread_pool_executor).run_all(jobs)
 
         return Task(stage['name'], TaskType.STAGE, exec_func=stage_func)
 
-    @staticmethod
-    def create_build_task(stages):
+    def create_build_task(self, stages):
+        runner = self.runners['build']
+
         def build_func():
-            SerialRunner().run_all(stages)
+            runner().run_all(stages)
 
         return Task(str(uuid4()), TaskType.BUILD, exec_func=build_func)

@@ -3,3 +3,8 @@ branch = true
 include = swarmci/*
 omit =
     swarmci/__main__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError

@@ -51,11 +51,11 @@ A `.swarmci` file consists of several layers.
 Each job consists of several pieces of information:
 
 * `image(s)` **(required)**: the image to be used for all tasks within this job. This image should be on an available registry for the swarm to pull from (or be built using the `build` task). It should not have an entrypoint, as we'll want to execute an infinite sleep shell command so that it _does not exit_, because all tasks will run on this container, and SwarmCI expects to be able to launch the container, leave it running, and exec tasks on the running container. ~~This can be either a string or a list. When in list form, this job will be converted to a [job matrix](#job-matrix).~~
-* `env` _(optional)_: environment variables to be made available for `commands`, `after_failure`, and `finally_command`. This can be dictionary or a list of dictionaries. ~~When in list form, this job will be converted to a [job matrix](#job-matrix).~~
+* `env` _(optional)_: environment variables to be made available for `commands`, `after_failure`, and `finally`. This can be dictionary or a list of dictionaries. ~~When in list form, this job will be converted to a [job matrix](#job-matrix).~~
 * TODO: `build` _(optional)_: Similar to the [docker compose build](https://docs.docker.com/compose/compose-file/#build). The SwarmCI agent can build and run the docker image locally before running tasks. The name of the built image will be that of the `image` key within the job.
-* `commands` **(required)**: This can be either a string or a list. If any command fails, subsequent commands will not be run, however, `after_failure` and `finally_command` will run if defined.
+* `commands` **(required)**: This can be either a string or a list. If any command fails, subsequent commands will not be run, however, `after_failure` and `finally` will run if defined.
 * `after_failure` _(optional)_: this runs if any command fails. This can be either a string or a list.
-* `finally_command(s)` _(optional)_: This can be either a string or a list. This runs regardless of result of prior commands.
+* `finally` _(optional)_: This can be either a string or a list. This runs regardless of result of prior commands.
 
 Full Example:
 
@@ -70,8 +70,8 @@ stages:
       commands:
         - /bin/sh -c 'echo "$say_something $HOSTNAME"'
         - /bin/sh -c 'echo "second task within my_job in $HOSTNAME"'
-      after_failure_command: /bin/echo "this runs if any script task fails"
-      finally_command: /bin/echo "this runs regardless of the result of the script tasks"
+      after_failure: /bin/echo "this runs if any script task fails"
+      finally: /bin/echo "this runs regardless of the result of the script tasks"
     - name: another_job
       image: python:alpine
       commands:

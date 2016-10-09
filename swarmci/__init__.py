@@ -12,12 +12,6 @@ from swarmci.version import __version__
 logger = get_logger(__name__)
 
 
-def load_swarmci_config(yaml_path):
-    logger.debug('opening %s', yaml_path)
-    with open(yaml_path, 'r') as f:
-        return yaml.load(f)
-
-
 def build_tasks_hierarchy(swarmci_config, task_factory):
     stages_from_yaml = swarmci_config.pop('stages', None)
     if stages_from_yaml is None:
@@ -50,7 +44,7 @@ def parse_args(args):
                      "enable parallel, distributed, isolated build tasks."))
 
     parser.add_argument('--version', action='version',
-                        version='%(prog)s {}'.format(__version__))
+                        version='SwarmCI {}'.format(__version__))
 
     parser.add_argument('--file', action='store', default='.swarmci')
 
@@ -75,7 +69,10 @@ def main(args):
 
     logging.getLogger('requests').setLevel(logging.WARNING)
 
-    swarmci_config = load_swarmci_config(swarmci_file)
+    logger.debug('opening %s', swarmci_file)
+    with open(swarmci_file, 'r') as f:
+        swarmci_config = yaml.load(f)
+
     build_task = build_tasks_hierarchy(swarmci_config, TaskFactory())
 
     logger.debug('starting build')
