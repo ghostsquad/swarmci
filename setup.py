@@ -7,34 +7,25 @@ https://github.com/pypa/sampleproject
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-from setuptools.command.test import test as TestCommand
 # To use a consistent encoding
 from codecs import open
-from os import path
+from setuptools.command.test import test as TestCommand
+import os
 import sys
 
-here = path.abspath(path.dirname(__file__))
+with open('swarmci/version.py') as f:
+    version = exec(f.read())
 
-# Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
-
-# Get version from the VERSION file
-with open(path.join(here, 'swarmci/VERSION'), encoding='utf-8') as f:
-    version = f.readline().strip()
 
 class Tox(TestCommand):
     user_options = [('tox-args=', 'a', "Arguments to pass to tox")]
-
     def initialize_options(self):
         TestCommand.initialize_options(self)
         self.tox_args = None
-
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_args = []
         self.test_suite = True
-
     def run_tests(self):
         #import here, cause outside the eggs aren't loaded
         import tox
@@ -53,7 +44,7 @@ setup(
     version=version,
 
     description='CI extension leveraging Docker Swarm to enable parallel, distributed, isolated build tasks.',
-    long_description=long_description,
+    long_description="",
 
     # The project's main homepage.
     url='https://github.com/ghostsquad/swarmci.git',
@@ -105,16 +96,6 @@ setup(
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
-    extras_require={
-        'test': ['pytest>=3.0.3',
-                 'pytest-cov>=2.3.1',
-                 'pytest-html>=1.10.1',
-                 'pytest-describe>=0.11.0',
-                 'tox>=2.3.1',
-                 'assertpy>=0.10',
-                 'mock>=2.0.0',
-                 'requests-mock>=1.0.0']
-    },
-
+    tests_require=['tox'],
     cmdclass={'test': Tox},
 )

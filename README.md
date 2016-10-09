@@ -1,5 +1,7 @@
 SwarmCI - Build Your Code in the Swarm
-========
+======================================
+
+![Build Status](https://travis-ci.org/ghostsquad/swarmci.svg?branch=master)
 
 SwarmCI (super pre-alpha) is a CI extension, meaning, you can use it to extend your existing build system (jenkins, bamboo, teamcity, etc), with parallel, distributed, isolated build tasks by leveraging your Docker Swarm.
 

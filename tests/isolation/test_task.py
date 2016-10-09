@@ -1,4 +1,4 @@
-from mock import Mock, call, mock
+from mock import Mock, call
 from assertpy import assert_that
 import pytest
 from swarmci.task import Task, TaskType

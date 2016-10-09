@@ -1,4 +1,4 @@
-from mock import Mock, call, mock, create_autospec
+from mock import Mock, call, create_autospec
 from assertpy import assert_that
 import pytest
 from docker import Client as DockerClient
@@ -79,7 +79,7 @@ def describe_container():
                 options['docker'] = docker_mock
                 options['remove'] = True
 
-                with Container(**options) as cn:
+                with Container(**options):
                     pass
 
                 docker_mock.remove_container.assert_called_once_with(container=expected_cn_id, v=True, force=True)
@@ -95,7 +95,7 @@ def describe_container():
                 options['docker'] = docker_mock
                 options['remove'] = False
 
-                with Container(**options) as cn:
+                with Container(**options):
                     pass
 
                 docker_mock.stop.assert_called_once_with(container=expected_cn_id)

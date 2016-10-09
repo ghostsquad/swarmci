@@ -1,7 +1,8 @@
 import time
 from uuid import uuid4
-from swarmci.util import get_logger, raise_
 from enum import Enum
+from swarmci.util import get_logger, raise_
+from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
 
 
 class TaskType(Enum):
@@ -81,3 +82,45 @@ class Task(object):
             self.runtime = self.end_time - self.start_time
             minutes, seconds = divmod(self.runtime, 60.0)
             self.logger.info('%s Runtime - %s min %.2f sec', self._task_type_pretty, int(minutes), seconds)
+
+
+class TaskFactory(object):
+    def create(self, task_type, *args, **kwargs):
+        switcher = {
+            TaskType.COMMAND: self.create_command_task,
+            TaskType.JOB: self.create_job_task,
+            TaskType.STAGE: self.create_stage_task,
+            TaskType.BUILD: self.create_build_task
+        }
+
+        func = switcher.get(task_type, lambda: raise_(ValueError("Unknown task_type {}".format(task_type))))
+        return func(*args, **kwargs)
+
+    @staticmethod
+    def create_command_task(cmd, run_func=DockerRunner.run_in_docker):
+        def command_func(*args, **kwargs):
+            run_func(cmd, *args, **kwargs)
+
+        return Task(cmd, TaskType.COMMAND, exec_func=command_func)
+
+    @staticmethod
+    def create_job_task(job, commands, runner=DockerRunner):
+        def job_func():
+            runner(job['image']).run_all(commands)
+
+        return Task(job['name'], TaskType.JOB, exec_func=job_func)
+
+    @staticmethod
+    def create_stage_task(stage, job_tasks, thread_pool_executor):
+        def stage_func():
+            runner = ThreadedRunner(thread_pool_executor)
+            runner.run_all(job_tasks)
+
+        return Task(stage['name'], TaskType.STAGE, exec_func=stage_func)
+
+    @staticmethod
+    def create_build_task(stage_tasks):
+        def build_func():
+            SerialRunner().run_all(stage_tasks)
+
+        return Task(str(uuid4()), TaskType.BUILD, exec_func=build_func)

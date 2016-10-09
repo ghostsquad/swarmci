@@ -1,5 +1,5 @@
 from assertpy import assert_that
-from mock import Mock, mock, create_autospec
+from mock import mock, create_autospec
 import pytest
 from pytest_describe import behaves_like
 from docker import Client as DockerClient
