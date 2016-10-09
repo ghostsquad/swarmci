@@ -16,15 +16,15 @@ This project inspired me because of the problems I've faced with conventional CI
 2. Agent VM/Containers need to be customized with differing capabilities (SDKs, versions, libraries, resources like cpu/mem, etc). 
     * This requires either an Ops team to maintain the permutations of build capabilities, or
     * Requires each build to install it's dependencies at build time, resulting in longer build times
-3. Build-Agent binding, required when builds need specific things pre-installed, is wasteful as you must wait for an idle agent that meets the build requirements before the build will run.
-3. An agent is no longer "untouched" after the first build it runs. State changes between builds can cause unexpected failures or worse, false-successes (unless the machine was re-provisioned after every build, not an easy or cheap thing to do).
-4. Adding parallelism to your build pipeline requires licensing of additional agents, which can be very expensive (in addition to the hardware).
+3. Build <-> Agent binding (when your build needs specific things pre-installed), is wasteful as you must wait for an idle agent that meets the build requirements before the build will run.
+3. Builds often write files to disk, and spin up processes, which don't always get reliably cleaned up. These changes between builds can cause unexpected failures or false-successes.
+4. Adding parallelism to your build pipeline requires licensing and additional VMs per agent. Expensive!
 5. Build agents are often underutilized, either idle, or running builds with low system requirements.
 
 ### Problems with Online Platforms (TravisCI, CircleCI, CodeShip, ...)
 
-1. Base images/os availability is limited. With SwarmCI, you can choose your base image, pre-loaded with whatever dependencies you need, resulting in fewer setup/dependency steps, in turn making your builds faster and simpler.
-2. Being assigned arbitrary defaults or limited system resources can cause pipeline bottlenecks. In addition, it might be hard to realize you have a bottleneck or are being throttled.d visibility, offering no insight into build bottlenecks or transient failures.
+1. Base images/os availability is limited. With SwarmCI, you can choose your base image, pre-loaded with whatever dependencies you need, meaning you'll have fewer setup/dependency steps and faster, simpler builds.
+2. Discovering the bottlenecks, throttling, or transient failures may be quite difficult.
 3. Cost can still be significantly reduced, as an example, by putting your Docker Swarm on AWS Spot Instances.
 
 ## What it does
@@ -51,17 +51,18 @@ A `.swarmci` file consists of several layers.
 Each job consists of several pieces of information:
 
 * `image(s)` **(required)**: the image to be used for all tasks within this job. This image should be on an available registry for the swarm to pull from (or be built using the `build` task). It should not have an entrypoint, as we'll want to execute an infinite sleep shell command so that it _does not exit_, because all tasks will run on this container, and SwarmCI expects to be able to launch the container, leave it running, and exec tasks on the running container. ~~This can be either a string or a list. When in list form, this job will be converted to a [job matrix](#job-matrix).~~
-* `env` _(optional)_: environment variables to be made available for `tasks`, `after_failure`, and `finally_task`. This can be dictionary or a list of dictionaries. ~~When in list form, this job will be converted to a [job matrix](#job-matrix).~~
+* `env` _(optional)_: environment variables to be made available for `commands`, `after_failure`, and `finally_command`. This can be dictionary or a list of dictionaries. ~~When in list form, this job will be converted to a [job matrix](#job-matrix).~~
 * TODO: `build` _(optional)_: Similar to the [docker compose build](https://docs.docker.com/compose/compose-file/#build). The SwarmCI agent can build and run the docker image locally before running tasks. The name of the built image will be that of the `image` key within the job.
-* `commands` **(required)**: This can be either a string or a list. If any command fails, subsequent commands will not be run, however, `after_failure_command` and `finally_command` will run if defined.
-* `after_failure_command` _(optional)_: this runs if any command fails. This can be either a string or a list.
+* `commands` **(required)**: This can be either a string or a list. If any command fails, subsequent commands will not be run, however, `after_failure` and `finally_command` will run if defined.
+* `after_failure` _(optional)_: this runs if any command fails. This can be either a string or a list.
 * `finally_command(s)` _(optional)_: This can be either a string or a list. This runs regardless of result of prior commands.
 
 Full Example:
 
 ```yaml
 stages:
-  - my_stage:
+  - name: my first stage
+    jobs:
     - name: my_job
       image: python:alpine
       env:
@@ -75,7 +76,8 @@ stages:
       image: python:alpine
       commands:
         - /bin/sh -c 'echo "another_job says hello from $HOSTNAME"'
-  - second_stage:
+  - name: my second stage
+    jobs:
     - name: default_job_in_second_stage
       image: python:alpine
       commands:
@@ -112,7 +114,8 @@ vagrant ssh manager
 ## Running Tests
 
 ```
-python3.5 runtox.py -e linting,py35,py36
+pip install tox
+tox
 ```
 
 or using docker
