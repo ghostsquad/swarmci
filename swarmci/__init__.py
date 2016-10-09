@@ -40,7 +40,7 @@ def build_tasks_hierarchy(swarmci_config, task_factory):
         stage_tasks.append(
             task_factory.create(TaskType.STAGE, stage=stage, jobs=job_tasks, thread_pool_executor=thread_pool_executor))
 
-    return task_factory.create(TaskType.BUILD, stage_tasks=stage_tasks)
+    return task_factory.create(TaskType.BUILD, stages=stage_tasks)
 
 
 def parse_args(args):

@@ -111,16 +111,16 @@ class TaskFactory(object):
         return Task(job['name'], TaskType.JOB, exec_func=job_func)
 
     @staticmethod
-    def create_stage_task(stage, job_tasks, thread_pool_executor):
+    def create_stage_task(stage, jobs, thread_pool_executor):
         def stage_func():
             runner = ThreadedRunner(thread_pool_executor)
-            runner.run_all(job_tasks)
+            runner.run_all(jobs)
 
         return Task(stage['name'], TaskType.STAGE, exec_func=stage_func)
 
     @staticmethod
-    def create_build_task(stage_tasks):
+    def create_build_task(stages):
         def build_func():
-            SerialRunner().run_all(stage_tasks)
+            SerialRunner().run_all(stages)
 
         return Task(str(uuid4()), TaskType.BUILD, exec_func=build_func)
