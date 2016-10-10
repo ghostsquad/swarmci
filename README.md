@@ -1,7 +1,7 @@
 SwarmCI - Build Your Code in the Swarm
 ======================================
 
-![Build Status](https://travis-ci.org/ghostsquad/swarmci.svg?branch=master) ![Coveralls](https://coveralls.io/repos/github/ghostsquad/swarmci/badge.svg) [![codecov](https://codecov.io/gh/ghostsquad/swarmci/branch/master/graph/badge.svg)](https://codecov.io/gh/ghostsquad/swarmci)
+[![Build Status][1]][1-1] [![Coveralls][2]][2-1] [![CodeCov][3]][3-1]
 
 SwarmCI (super pre-alpha) is a CI extension, meaning, you can use it to extend your existing build system (jenkins, bamboo, teamcity, etc), with parallel, distributed, isolated build tasks by leveraging your Docker Swarm.
 
@@ -160,3 +160,10 @@ docker run -it swarmci:test
 `Job` - Jobs are smaller, independent units of work, which can run in parallel. Each job runs in a separate container. Jobs in subsequent stages will not begin executing until all jobs in the previous stage have completed successfully. A single job failure will result in a failed stage (though it does not cause other jobs to stop running).
 
 `Command` - Commands are literal commands run in a common container with the job in which they are defined, and they run in series. A single command failure (exit_code != 0) will halt a job and mark the job as a failure.
+
+[1]: https://travis-ci.org/ghostsquad/swarmci.svg?branch=master
+[1-1]: https://coveralls.io/repos/github/ghostsquad/swarmci
+[2]: https://coveralls.io/repos/github/ghostsquad/swarmci/badge.svg
+[2-1]: https://coveralls.io/repos/github/ghostsquad/swarmci
+[3]: https://codecov.io/gh/ghostsquad/swarmci/branch/master/graph/badge.svg
+[3-1]: https://codecov.io/gh/ghostsquad/swarmci/branch/master
