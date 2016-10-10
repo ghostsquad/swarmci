@@ -22,7 +22,7 @@ class RunnerBase(object):
 
     def raise_if_not_successful(self, task):
         if not task.successful:
-            msg = "Failure detected, skipping further %ss" % task.pretty_task_type
+            msg = "Failure detected, skipping further %ss" % task.task_type_pretty
             self.logger.error(msg)
             raise TaskFailedError(msg)
 
@@ -55,7 +55,7 @@ class ThreadedRunner(RunnerBase):
         concurrent.futures.wait(futures)
 
         if not all(t.successful for t in tasks):
-            msg = "Failure detected in one or more {}s!".format(tasks[0].pretty_task_type)
+            msg = "Failure detected in one or more {}s!".format(tasks[0].task_type_pretty)
             self.logger.error(msg)
             raise TaskFailedError(msg)
 

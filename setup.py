@@ -91,7 +91,9 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'PyYAML>=3.12',
-        'docker-py>=1.10.3'
+        'docker-py>=1.10.3',
+        'colorlog>=2.7.0',
+        'colored>=1.3.1'
     ],
 
     # List additional groups of dependencies here (e.g. development

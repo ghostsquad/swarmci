@@ -1,11 +1,12 @@
+import sys
 import argparse
 import logging
 import os
-import sys
 import yaml
+import colorlog
 from concurrent.futures import ThreadPoolExecutor
-from swarmci.util import get_logger
-from swarmci.errors import SwarmCIError, TaskFailedError
+from swarmci.util import get_logger, print_task_results
+from swarmci.errors import SwarmCIError
 from swarmci.task import TaskType, TaskFactory
 from swarmci.version import __version__
 
@@ -48,15 +49,32 @@ def parse_args(args):
 
     parser.add_argument('--file', action='store', default='.swarmci')
 
+    parser.add_argument('--debug', action='store_true')
+
     return parser.parse_args(args)
 
 
 def main(args):
     args = parse_args(args)
-    logging.basicConfig(
-        stream=sys.stdout,
-        level=logging.DEBUG,
-        format="%(asctime)s (%(threadName)-10s) [%(levelname)8s] - %(message)s")
+
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
+    handler = colorlog.StreamHandler()
+
+    handler.setFormatter(colorlog.ColoredFormatter(
+        '%(log_color)s%(asctime)s (%(threadName)-10s) [%(levelname)8s] - %(message)s',
+        log_colors={
+            'DEBUG': 'cyan',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'red,bg_white',
+        },
+    ))
+
+    logger.addHandler(handler)
 
     swarmci_file = args.file if args.file else os.path.join(os.getcwd(), '.swarmci')
 
@@ -77,7 +95,14 @@ def main(args):
 
     logger.debug('starting build')
     build_task.execute()
+
     if build_task.successful:
         logger.info('all stages completed successfully!')
     else:
-        raise TaskFailedError('some stages did not complete successfully. :(')
+        logger.error('some stages did not complete successfully. :(')
+
+    print_task_results(build_task)
+
+    if not build_task.successful:
+        sys.exit(1)
+
