@@ -1,6 +1,8 @@
 from docker import Client as DockerClient
+import concurrent.futures
 from swarmci.util import get_logger
 from swarmci.docker import Container
+from swarmci.errors import TaskFailedError
 
 logger = get_logger(__name__)
 
@@ -18,6 +20,12 @@ class RunnerBase(object):
     def run_all(self, tasks):
         raise NotImplementedError
 
+    def raise_if_not_successful(self, task):
+        if not task.successful:
+            msg = "Failure detected, skipping further %ss" % task.pretty_task_type
+            self.logger.error(msg)
+            raise TaskFailedError(msg)
+
 
 class SerialRunner(RunnerBase):
     """
@@ -28,12 +36,8 @@ class SerialRunner(RunnerBase):
     def run_all(self, tasks):
         self.tasks = []
         for task in tasks:
-            result = self.run(task)
-            if not result:
-                self.logger.error('failure detected, skipping further %ss', task.task_type)
-                return False
-
-        return True
+            self.run(task)
+            self.raise_if_not_successful(task)
 
 
 class ThreadedRunner(RunnerBase):
@@ -47,11 +51,13 @@ class ThreadedRunner(RunnerBase):
         super().__init__()
 
     def run_all(self, tasks):
-        results = self._thread_pool_executor.map(self.run, tasks)
-        if all(results):
-            return True
+        futures = list(map(lambda t: self._thread_pool_executor.submit(self.run, t), tasks))
+        concurrent.futures.wait(futures)
 
-        return False
+        if not all(t.successful for t in tasks):
+            msg = "Failure detected in one or more {}s!".format(tasks[0].pretty_task_type)
+            self.logger.error(msg)
+            raise TaskFailedError(msg)
 
 
 class DockerRunner(RunnerBase):
@@ -85,8 +91,5 @@ class DockerRunner(RunnerBase):
         with self._cn(self.image, self.host_config, self.docker, env=self.env) as cn:
             self.logger.info('Using Container %s', cn.id[0:11])
             for task in tasks:
-                result = self.run(task, cn=cn)
-                if not result:
-                    self.logger.error('Failure detected! skipping further %ss', task.pretty_task_type)
-                    return False
-            return True
+                self.run(task, cn=cn)
+                self.raise_if_not_successful(task)

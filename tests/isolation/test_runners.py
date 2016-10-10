@@ -3,10 +3,11 @@ from mock import mock, create_autospec
 import pytest
 from pytest_describe import behaves_like
 from docker import Client as DockerClient
+from concurrent.futures import ThreadPoolExecutor
 from swarmci.docker import Container
 from swarmci.task import Task
-from swarmci.runners import RunnerBase, SerialRunner, ThreadedRunner, DockerRunner
-from concurrent.futures import ThreadPoolExecutor
+from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
+from swarmci.errors import TaskFailedError
 
 
 def create_task_mock(count=1):
@@ -21,70 +22,66 @@ def create_task_mock(count=1):
 
 def a_runner():
     def describe_run():
-        def given_task_not_successful():
-            def expect_returns_false(runner_fixture):
-                mock_task = create_task_mock()
-                mock_task.successful = False
+        def expect_task_execute_called(runner_fixture):
+            mock_task = create_task_mock()
+            runner_fixture.run(task=mock_task)
+            mock_task.execute.assert_called_once()
 
-                assert_that(runner_fixture.run(task=mock_task)).is_false()
-
-        def given_task_successful():
-            def expect_returns_true(runner_fixture):
-                mock_task = create_task_mock()
-                mock_task.successful = True
-
-                assert_that(runner_fixture.run(task=mock_task)).is_true()
-
-
-def a_serial_runner():
     def describe_run_all():
         def given_single_task():
             def when_task_fails():
-                def expect_return_false(runner_fixture):
+                def expect_raises_task_failed_error(runner_fixture):
                     task_mock = create_task_mock()
                     task_mock.successful = False
 
-                    assert_that(runner_fixture.run_all([task_mock])).is_false()
+                    with pytest.raises(TaskFailedError) as excinfo:
+                        runner_fixture.run_all([task_mock])
+
+                    assert_that(str(excinfo.value)).matches(r'Failure')
 
             def when_task_succeeds():
-                def expect_return_true(runner_fixture):
+                def expect_does_not_raise_task_failed_error(runner_fixture):
                     task_mock = create_task_mock()
                     task_mock.successful = True
 
-                    assert_that(runner_fixture.run_all([task_mock])).is_true()
+                    runner_fixture.run_all([task_mock])
 
-        def given_many_tasks():
-            def when_first_task_fails():
-                def expect_later_tasks_not_run_returns_false(runner_fixture):
-                    task1_mock, task2_mock = create_task_mock(count=2)
-                    task1_mock.successful = False
-
-                    assert_that(runner_fixture.run_all([task1_mock, task2_mock])).is_false()
-                    task1_mock.execute.assert_called_once()
-                    task2_mock.execute.assert_not_called()
-
+        def given_multiple_tasks():
             def when_any_task_fails():
-                def expect_return_false(runner_fixture):
+                def expect_raises_task_failed_error(runner_fixture):
                     task1_mock, task2_mock = create_task_mock(count=2)
                     task1_mock.successful = True
                     task2_mock.successful = False
 
-                    assert_that(runner_fixture.run_all([task1_mock, task2_mock])).is_false()
+                    with pytest.raises(TaskFailedError) as excinfo:
+                        runner_fixture.run_all([task1_mock, task2_mock])
+
+                    assert_that(str(excinfo.value)).matches(r'Failure')
 
             def when_all_tasks_succeed():
-                def expect_return_true(runner_fixture):
+                def expect_not_to_raise_error(runner_fixture):
                     task1_mock, task2_mock = create_task_mock(count=2)
                     task1_mock.successful = True
                     task2_mock.successful = True
 
-                    assert_that(runner_fixture.run_all([task1_mock, task2_mock])).is_true()
+                    runner_fixture.run_all([task1_mock, task2_mock])
 
 
-@behaves_like(a_runner)
-def describe_runner_base():
-    @pytest.fixture(scope='function')
-    def runner_fixture():
-        return RunnerBase()
+def a_serial_runner():
+    def describe_run_all_serial_behavior():
+        def given_many_tasks():
+            def when_first_task_fails():
+                def expect_later_tasks_not_run_raise_task_failed_error(runner_fixture):
+                    task1_mock, task2_mock = create_task_mock(count=2)
+                    task1_mock.successful = False
+
+                    with pytest.raises(TaskFailedError) as excinfo:
+                        runner_fixture.run_all([task1_mock, task2_mock])
+
+                    assert_that(str(excinfo.value)).matches(r'Failure')
+
+                    task1_mock.execute.assert_called_once()
+                    task2_mock.execute.assert_not_called()
 
 
 @behaves_like(a_runner, a_serial_runner)
@@ -101,47 +98,18 @@ def describe_threaded_runner():
     def runner_fixture():
         return ThreadedRunner(thread_pool_executor=ThreadPoolExecutor(max_workers=2))
 
-    def describe_run_all_():
-        def given_single_task():
-            def when_task_fails():
-                def expect_return_false(runner_fixture):
-                    task_mock = create_task_mock()
-                    task_mock.successful = False
-
-                    assert_that(runner_fixture.run_all([task_mock])).is_false()
-
-            def when_task_succeeds():
-                def expect_return_true(runner_fixture):
-                    task_mock = create_task_mock()
-                    task_mock.successful = True
-
-                    assert_that(runner_fixture.run_all([task_mock])).is_true()
-
+    def describe_run_all_threaded_behavior():
         def given_many_tasks():
             def when_first_task_fails():
-                def expect_later_tasks_still_run_returns_false(runner_fixture):
+                def expect_later_tasks_still_run(runner_fixture):
                     task1_mock, task2_mock = create_task_mock(count=2)
                     task1_mock.successful = False
 
-                    assert_that(runner_fixture.run_all([task1_mock, task2_mock])).is_false()
+                    with pytest.raises(TaskFailedError):
+                        runner_fixture.run_all([task1_mock, task2_mock])
+
                     task1_mock.execute.assert_called_once()
                     task2_mock.execute.assert_called_once()
-
-            def when_any_task_fails():
-                def expect_return_false(runner_fixture):
-                    task1_mock, task2_mock = create_task_mock(count=2)
-                    task1_mock.successful = True
-                    task2_mock.successful = False
-
-                    assert_that(runner_fixture.run_all([task1_mock, task2_mock])).is_false()
-
-            def when_all_tasks_succeed():
-                def expect_return_true(runner_fixture):
-                    task1_mock, task2_mock = create_task_mock(count=2)
-                    task1_mock.successful = True
-                    task2_mock.successful = True
-
-                    assert_that(runner_fixture.run_all([task1_mock, task2_mock])).is_true()
 
 
 @behaves_like(a_runner, a_serial_runner)

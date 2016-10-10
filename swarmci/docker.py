@@ -3,7 +3,7 @@ from io import BytesIO
 import os
 from uuid import uuid4
 from swarmci.util import get_logger
-from swarmci.exceptions import DockerCommandFailedException
+from swarmci.errors import DockerCommandFailedError
 
 logger = get_logger(__name__)
 
@@ -87,4 +87,4 @@ class Container(object):
 
         if exit_code != 0:
             msg = 'command [{}] returned exitcode [{}]'.format(cmd, exit_code)
-            raise DockerCommandFailedException(message=msg, exit_code=exit_code, cmd=cmd, output=output)
+            raise DockerCommandFailedError(message=msg, exit_code=exit_code, cmd=cmd, output=output)

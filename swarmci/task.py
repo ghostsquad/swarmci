@@ -74,9 +74,10 @@ class Task(object):
             self._successful = True
             self.logger.info(end_msg_fmt.format(self._task_type_pretty, "successfully", self.name))
         except Exception as exc:
+            self._successful = False
             self._error = exc
             result_msg = end_msg_fmt.format(self._task_type_pretty, "with an error", self.name)
-            self.logger.exception(result_msg, exc_info=exc)
+            self.logger.error(result_msg)
         finally:
             self.end_time = self._tm()
             self.runtime = self.end_time - self.start_time
@@ -108,7 +109,7 @@ class TaskFactory(object):
 
     def create_command_task(self, cmd, run_func=DockerRunner.run_in_docker):
         def command_func(*args, **kwargs):
-            run_func(cmd, *args, **kwargs)
+            return run_func(cmd, *args, **kwargs)
 
         return Task(cmd, TaskType.COMMAND, exec_func=command_func)
 
@@ -116,7 +117,7 @@ class TaskFactory(object):
         runner = self.runners['job']
 
         def job_func():
-            runner(job['image']).run_all(commands)
+            return runner(job['image']).run_all(commands)
 
         return Task(job['name'], TaskType.JOB, exec_func=job_func)
 
@@ -124,7 +125,7 @@ class TaskFactory(object):
         runner = self.runners['stage']
 
         def stage_func():
-            runner(thread_pool_executor).run_all(jobs)
+            return runner(thread_pool_executor).run_all(jobs)
 
         return Task(stage['name'], TaskType.STAGE, exec_func=stage_func)
 
@@ -132,6 +133,6 @@ class TaskFactory(object):
         runner = self.runners['build']
 
         def build_func():
-            runner().run_all(stages)
+            return runner().run_all(stages)
 
         return Task(str(uuid4()), TaskType.BUILD, exec_func=build_func)

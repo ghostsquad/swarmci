@@ -3,17 +3,14 @@ stages:
     jobs:
     - name: my_job
       image: python:alpine
-      env:
-        say_something: hello from
       commands:
-        - /bin/sh -c 'echo "$say_something $HOSTNAME"'
-        - /bin/sh -c 'echo "second task within my_job in $HOSTNAME"'
+        - /bin/sh -c 'exit 1'
       after_failure: /bin/echo "this runs if any script task fails"
-      finally: /bin/echo "this runs regardless of the result of the script tasks"
+      finally_command: /bin/echo "this runs regardless of the result of the script tasks"
     - name: another_job
       image: python:alpine
       commands:
-        - /bin/sh -c 'echo "another_job says hello from $HOSTNAME"'
+        - /bin/sh -c 'sleep 1'
   - name: my second stage
     jobs:
     - name: default_job_in_second_stage

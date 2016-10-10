@@ -4,7 +4,7 @@ from io import StringIO
 import sys
 from assertpy import assert_that
 from swarmci import parse_args
-from swarmci.exceptions import SwarmCIException
+from swarmci.errors import SwarmCIError
 from swarmci import build_tasks_hierarchy
 from swarmci.task import Task, TaskType, TaskFactory
 
@@ -16,7 +16,7 @@ def describe_build_tasks_hierarchy():
                 "foo": "bar"
             }
 
-            with pytest.raises(SwarmCIException) as excinfo:
+            with pytest.raises(SwarmCIError) as excinfo:
                 build_tasks_hierarchy(config, TaskFactory())
 
             assert_that(str(excinfo.value)).is_equal_to('Did not find "stages" key in the .swarmci file.')
@@ -27,7 +27,7 @@ def describe_build_tasks_hierarchy():
                 "stages": "bar"
             }
 
-            with pytest.raises(SwarmCIException) as excinfo:
+            with pytest.raises(SwarmCIError) as excinfo:
                 build_tasks_hierarchy(config, TaskFactory())
 
             assert_that(str(excinfo.value)).is_equal_to(

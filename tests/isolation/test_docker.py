@@ -3,7 +3,7 @@ from assertpy import assert_that
 import pytest
 from docker import Client as DockerClient
 from swarmci.docker import Container
-from swarmci.exceptions import DockerCommandFailedException
+from swarmci.errors import DockerCommandFailedError
 
 
 container_init_defaults = {
@@ -143,7 +143,7 @@ def describe_container():
             def expect_error_raised(docker_client_fixture):
                 docker_client_fixture.exec_inspect.return_value = {'ExitCode': 18}
 
-                with pytest.raises(DockerCommandFailedException) as excinfo:
+                with pytest.raises(DockerCommandFailedError) as excinfo:
                     create_container_obj(docker_client_fixture).execute('my_cmd')
 
                 assert_that(str(excinfo.value)).is_equal_to('command [my_cmd] returned exitcode [18]')

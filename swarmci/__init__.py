@@ -5,7 +5,7 @@ import sys
 import yaml
 from concurrent.futures import ThreadPoolExecutor
 from swarmci.util import get_logger
-from swarmci.exceptions import SwarmCIException
+from swarmci.errors import SwarmCIError, TaskFailedError
 from swarmci.task import TaskType, TaskFactory
 from swarmci.version import __version__
 
@@ -15,9 +15,9 @@ logger = get_logger(__name__)
 def build_tasks_hierarchy(swarmci_config, task_factory):
     stages_from_yaml = swarmci_config.pop('stages', None)
     if stages_from_yaml is None:
-        raise SwarmCIException('Did not find "stages" key in the .swarmci file.')
+        raise SwarmCIError('Did not find "stages" key in the .swarmci file.')
     elif type(stages_from_yaml) is not list:
-        raise SwarmCIException('The value of the "stages" key should be a list in the .swarmci file.')
+        raise SwarmCIError('The value of the "stages" key should be a list in the .swarmci file.')
 
     thread_pool_executor = ThreadPoolExecutor(max_workers=25)
 
@@ -80,4 +80,4 @@ def main(args):
     if build_task.successful:
         logger.info('all stages completed successfully!')
     else:
-        logger.error('some stages did not complete successfully. :(')
+        raise TaskFailedError('some stages did not complete successfully. :(')
