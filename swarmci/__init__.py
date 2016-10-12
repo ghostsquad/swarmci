@@ -84,13 +84,16 @@ def _print_failure_results(tasks):
 def print_task_results(task):
     print("")
 
-    success, failed, skipped = _print_task_results([task])
+    def get_status_string(color, symbol, count, status):
+        return "{}{} {} {}{}".format(fg(color), symbol, count, status, attr(0))
 
-    success_msg = "{}\u2717 {} tasks successful{}".format(fg(2), success, attr(0)) if success > 0 else ""
+    successful, failed, skipped = _print_task_results([task])
+
+    success_msg = get_status_string(2, "\u2713", successful, "successful") if successful > 0 else ""
 
     if failed > 0:
-        skipped_msg = "{}\u2933 {} skipped{}".format(fg(3), skipped, attr(0)) if skipped > 0 else ""
-        failed_msg = "{}\u2717 {} failed{}".format(fg(1), failed, attr(0)) if failed > 0 else ""
+        skipped_msg = get_status_string(3, "\u2933", skipped, "skipped") if skipped > 0 else ""
+        failed_msg = get_status_string(1, "\u2717", failed, "failed") if failed > 0 else ""
 
         print("\n  {}\n".format(" ".join([failed_msg, skipped_msg, success_msg])))
     else:
