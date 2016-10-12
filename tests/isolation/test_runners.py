@@ -133,7 +133,7 @@ def describe_docker_runner():
         def expect_command_executed_in_container(cn_fixture):
             expected_command = 'test task'
             DockerRunner.run_in_docker(expected_command, cn=cn_fixture)
-            cn_fixture.execute.assert_called_once_with(expected_command)
+            cn_fixture.execute.assert_called_once_with(expected_command, out_func=None)
 
     def describe_run_all_container_behavior():
 
