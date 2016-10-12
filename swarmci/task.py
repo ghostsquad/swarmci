@@ -1,33 +1,20 @@
+import sys
+import traceback
 import time
 from uuid import uuid4
-from enum import Enum
 from swarmci.util import get_logger, raise_
 from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
 
 
-class TaskType(Enum):
-    BUILD = 1
-    STAGE = 2
-    JOB = 3
-    COMMAND = 4
-
-
 class Task(object):
-    def __init__(self, name, task_type, exec_func, sub_tasks=None, tm=None):
+    def __init__(self, name, sub_tasks=None, tm=None):
         self.logger = get_logger(__name__)
         self.id = str(uuid4())
         self._tm = time.time if tm is None else tm
 
         self._name = name or raise_(ValueError('tasks must have a name'))
 
-        if type(task_type) is not TaskType:
-            raise ValueError('task_type must be of type TaskType')
-
-        self._task_type = task_type
-
-        self.exec_func = exec_func if callable(exec_func) else raise_(ValueError('exec_func must be a callable'))
-
-        self._task_type_pretty = str(self.task_type.name).lower().capitalize()
+        self._task_type_pretty = str(self.__class__.__name__).lower().capitalize()[0:-4]
 
         self._subtasks = sub_tasks if sub_tasks else []
 
@@ -35,8 +22,8 @@ class Task(object):
         self.end_time = None
         self._runtime = None
         self._successful = False
-        self._results = None
-        self._error = None
+        self._results = []
+        self._exc_info = None
 
     @property
     def name(self):
@@ -45,10 +32,6 @@ class Task(object):
     @property
     def successful(self):
         return self._successful
-
-    @property
-    def task_type(self):
-        return self._task_type
 
     @property
     def task_type_pretty(self):
@@ -67,8 +50,8 @@ class Task(object):
         self._results = value
 
     @property
-    def error(self):
-        return self._error
+    def exc_info(self):
+        return self._exc_info
 
     @property
     def runtime(self):
@@ -81,18 +64,22 @@ class Task(object):
         minutes, seconds = divmod(self._runtime, 60.0)
         return '{} min {:.2f} sec'.format(int(minutes), seconds)
 
+    def _execute(self, *args, **kwargs):
+        raise NotImplementedError
+
     def execute(self, *args, **kwargs):
         end_msg_fmt = '{} Ended {} - {}'
 
         self.start_time = self._tm()
         self.logger.info('Starting %s - %s', self._task_type_pretty, self.name)
         try:
-            self.results = self.exec_func(*args, **kwargs)
+            self.results = self._execute(*args, **kwargs)
             self._successful = True
             self.logger.info(end_msg_fmt.format(self._task_type_pretty, "successfully", self.name))
-        except Exception as exc:
+        except Exception:
             self._successful = False
-            self._error = exc
+            self._exc_info = sys.exc_info()
+            self.logger.debug(traceback.format_exc())
             result_msg = end_msg_fmt.format(self._task_type_pretty, "with an error", self.name)
             self.logger.error(result_msg)
         finally:
@@ -101,55 +88,56 @@ class Task(object):
             self.logger.info('%s Runtime - %s', self._task_type_pretty, self.runtime_str)
 
 
-class TaskFactory(object):
-    def __init__(self, runners=None):
-        self.runners = {
-            'job': DockerRunner,
-            'stage': ThreadedRunner,
-            'build': SerialRunner
-        }
+class RunnerTask(Task):
+    def __init__(self, name, runner, *args, **kwargs):
+        self._runner = runner
+        super().__init__(name, *args, **kwargs)
 
-        if runners:
-            self.runners.update(runners)
+    def _execute(self, *args, **kwargs):
+        self._runner.run_all(self.subtasks)
 
-    def create(self, task_type, *args, **kwargs):
-        switcher = {
-            TaskType.COMMAND: self.create_command_task,
-            TaskType.JOB: self.create_job_task,
-            TaskType.STAGE: self.create_stage_task,
-            TaskType.BUILD: self.create_build_task
-        }
 
-        func = switcher.get(task_type, lambda: raise_(ValueError("Unknown task_type {}".format(task_type))))
-        return func(*args, **kwargs)
+class BuildTask(RunnerTask):
+    """
+    A Build Task runs Stages, which run serially
+    """
 
-    @staticmethod
-    def create_command_task(cmd, run_func=DockerRunner.run_in_docker):
-        def command_func(*args, **kwargs):
-            return run_func(cmd, *args, **kwargs)
+    def __init__(self, name, runner=None, *args, **kwargs):
+        if runner is None:
+            runner = SerialRunner()
+        super().__init__(name, runner, *args, **kwargs)
 
-        return Task(cmd, TaskType.COMMAND, exec_func=command_func)
 
-    def create_job_task(self, job, commands):
-        runner = self.runners['job']
+class StageTask(RunnerTask):
+    """
+    A Stage Task runs jobs, which run in parallel
+    """
 
-        def job_func():
-            return runner(job['image']).run_all(commands)
+    def __init__(self, name, runner=None, thread_pool_executor=None, *args, **kwargs):
+        if runner is None:
+            if thread_pool_executor is None:
+                raise ValueError("thread_pool_executor is required if runner is not provided")
+            runner = ThreadedRunner(thread_pool_executor)
+        super().__init__(name, runner, *args, **kwargs)
 
-        return Task(job['name'], TaskType.JOB, sub_tasks=commands, exec_func=job_func)
 
-    def create_stage_task(self, stage, jobs, thread_pool_executor):
-        runner = self.runners['stage']
+class JobTask(RunnerTask):
+    """
+    A Job Task runs commands, which run serially
+    """
 
-        def stage_func():
-            return runner(thread_pool_executor).run_all(jobs)
+    def __init__(self, name, runner=None, image=None, *args, **kwargs):
+        if runner is None:
+            if image is None:
+                raise ValueError("image is required if runner is not provided")
+            runner = DockerRunner(image)
+        super().__init__(name, runner, *args, **kwargs)
 
-        return Task(stage['name'], TaskType.STAGE, sub_tasks=jobs, exec_func=stage_func)
 
-    def create_build_task(self, stages):
-        runner = self.runners['build']
+class CommandTask(Task):
+    def __init__(self, name, *args, docker_run=None, **kwargs):
+        self._docker_run = docker_run if docker_run else DockerRunner.run_in_docker
+        super().__init__(name, *args, **kwargs)
 
-        def build_func():
-            return runner().run_all(stages)
-
-        return Task(str(uuid4()), TaskType.BUILD, sub_tasks=stages, exec_func=build_func)
+    def _execute(self, *args, **kwargs):
+        self._docker_run(self.name, out_func=self.results.append, *args, **kwargs)

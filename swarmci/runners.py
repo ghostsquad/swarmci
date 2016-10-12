@@ -82,10 +82,8 @@ class DockerRunner(RunnerBase):
         super().__init__()
 
     @staticmethod
-    def run_in_docker(command, cn):
-        logger.info("----BEGIN STDOUT----")
-        cn.execute(command)
-        logger.info("----END STDOUT----")
+    def run_in_docker(command, cn, out_func=None):
+        cn.execute(command, out_func=out_func)
 
     def run_all(self, tasks):
         with self._cn(self.image, self.host_config, self.docker, env=self.env) as cn:

@@ -2,7 +2,6 @@
 !swarmci/*
 !tests/*
 !setup.py
-!runtox.py
 !tox.ini
 !.swarmci
 *.pyc

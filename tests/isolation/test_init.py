@@ -6,7 +6,7 @@ from assertpy import assert_that
 from swarmci import parse_args
 from swarmci.errors import SwarmCIError
 from swarmci import build_tasks_hierarchy
-from swarmci.task import Task, TaskType, TaskFactory
+from swarmci.task import Task, BuildTask
 
 
 def describe_build_tasks_hierarchy():
@@ -17,7 +17,7 @@ def describe_build_tasks_hierarchy():
             }
 
             with pytest.raises(SwarmCIError) as excinfo:
-                build_tasks_hierarchy(config, TaskFactory())
+                build_tasks_hierarchy(config)
 
             assert_that(str(excinfo.value)).is_equal_to('Did not find "stages" key in the .swarmci file.')
 
@@ -28,7 +28,7 @@ def describe_build_tasks_hierarchy():
             }
 
             with pytest.raises(SwarmCIError) as excinfo:
-                build_tasks_hierarchy(config, TaskFactory())
+                build_tasks_hierarchy(config)
 
             assert_that(str(excinfo.value)).is_equal_to(
                 'The value of the "stages" key should be a list in the .swarmci file.')
@@ -41,6 +41,7 @@ def describe_build_tasks_hierarchy():
                     'jobs': [
                         {
                             'name': 'foo_job',
+                            'image': 'foo_image',
                             'commands': [
                                 'test command'
                             ]
@@ -49,10 +50,10 @@ def describe_build_tasks_hierarchy():
                 }
             ]
         }
-        task = build_tasks_hierarchy(config, TaskFactory())
+        task = build_tasks_hierarchy(config)
 
         assert_that(task).is_instance_of(Task)
-        assert_that(task.task_type).is_equal_to(TaskType.BUILD)
+        assert_that(task).is_instance_of(BuildTask)
 
 
 @contextmanager
