@@ -1,7 +1,7 @@
 SwarmCI - Build Your Code in the Swarm
 ======================================
 
-[![Build Status][1]][1-1] [![Coveralls][2]][2-1] [![CodeCov][3]][3-1]
+[![Build Status][1]][1-1] [![Coveralls][2]][2-1] [![CodeCov][3]][3-1] [![CodeClimate][4]][4-1]
 
 SwarmCI (super pre-alpha) is a CI extension, meaning, you can use it to extend your existing build system (jenkins, bamboo, teamcity, etc), with parallel, distributed, isolated build tasks by leveraging your Docker Swarm.
 
@@ -167,3 +167,5 @@ docker run -it swarmci:test
 [2-1]: https://coveralls.io/repos/github/ghostsquad/swarmci
 [3]: https://codecov.io/gh/ghostsquad/swarmci/branch/master/graph/badge.svg
 [3-1]: https://codecov.io/gh/ghostsquad/swarmci/branch/master
+[4]: https://codeclimate.com/github/ghostsquad/swarmci/badges/gpa.svg
+[4-1]: https://codeclimate.com/github/ghostsquad/swarmci
