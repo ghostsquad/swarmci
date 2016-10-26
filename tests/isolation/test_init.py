@@ -6,7 +6,7 @@ from assertpy import assert_that
 from swarmci import parse_args
 from swarmci.errors import SwarmCIError
 from swarmci import build_tasks_hierarchy
-from swarmci.task import Task, BuildTask
+from swarmci.task import Task, Build
 
 
 def describe_build_tasks_hierarchy():
@@ -53,7 +53,7 @@ def describe_build_tasks_hierarchy():
         task = build_tasks_hierarchy(config)
 
         assert_that(task).is_instance_of(Task)
-        assert_that(task).is_instance_of(BuildTask)
+        assert_that(task).is_instance_of(Build)
 
 
 @contextmanager

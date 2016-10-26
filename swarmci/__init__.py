@@ -10,34 +10,46 @@ from colored import fg, attr
 from concurrent.futures import ThreadPoolExecutor
 from swarmci.util import get_logger
 from swarmci.errors import SwarmCIError
-from swarmci.task import BuildTask, StageTask, JobTask, CommandTask
+from swarmci.task import Build, Stage, Job, Command
 from swarmci.version import __version__
 
 logger = get_logger(__name__)
 
 
-def build_tasks_hierarchy(swarmci_config):
-    stages_from_yaml = swarmci_config.pop('stages', None)
-    if stages_from_yaml is None:
+def build_command_tasks(job):
+    return map(lambda x: Command(x), job['commands'])
+
+
+def build_job_tasks(stage):
+    def create_job_task(job):
+        commands = build_command_tasks(job)
+        return Job(job['name'], image=job['image'], sub_tasks=commands)
+
+    return map(lambda j: create_job_task(j), stage['jobs'])
+
+
+def build_stage_tasks(stages, thread_pool_executor):
+    def create_build_task(stage):
+        jobs = build_job_tasks(stage)
+        return Stage(stage['name'], thread_pool_executor=thread_pool_executor, sub_tasks=jobs)
+
+    return map(create_build_task, stages)
+
+
+def validate_stages(stages):
+    if stages is None:
         raise SwarmCIError('Did not find "stages" key in the .swarmci file.')
-    elif type(stages_from_yaml) is not list:
+    elif not isinstance(stages, list):
         raise SwarmCIError('The value of the "stages" key should be a list in the .swarmci file.')
 
-    thread_pool_executor = ThreadPoolExecutor(max_workers=25)
 
-    stage_tasks = []
-    for stage in stages_from_yaml:
-        job_tasks = []
-        for job in stage['jobs']:
-            commands = []
-            for cmd in job['commands']:
-                commands.append(CommandTask(cmd))
+def build_tasks_hierarchy(swarmci_config):
+    stages = swarmci_config.pop('stages', None)
+    validate_stages(stages)
 
-            job_tasks.append(JobTask(job['name'], image=job['image'], sub_tasks=commands))
+    stage_tasks = build_stage_tasks(stages, ThreadPoolExecutor(max_workers=25))
 
-        stage_tasks.append(StageTask(stage['name'], thread_pool_executor=thread_pool_executor, sub_tasks=job_tasks))
-
-    return BuildTask(str(uuid4()), sub_tasks=stage_tasks)
+    return Build(str(uuid4()), sub_tasks=stage_tasks)
 
 
 def parse_args(args):
@@ -66,7 +78,7 @@ def print_failure_results(task):
 
 def _print_failure_results(tasks):
     for task in tasks:
-        if type(task) is CommandTask and not task.successful and task.runtime is not None:
+        if type(task) is Command and not task.successful and task.runtime is not None:
             print("")
             print(task.name)
             print("{}----------------------------------------------{}\n".format(fg(1), attr(0)))

@@ -7,7 +7,11 @@ from swarmci.errors import TaskFailedError
 logger = get_logger(__name__)
 
 
-class RunnerBase(object):
+class Runner(object):
+    """
+    The base class for all runners
+    """
+
     def __init__(self):
         self.tasks = []
         self.logger = get_logger(__name__)
@@ -22,12 +26,12 @@ class RunnerBase(object):
 
     def raise_if_not_successful(self, task):
         if not task.successful:
-            msg = "Failure detected, skipping further %ss" % task.task_type_pretty
+            msg = "Failure detected, skipping further %ss" % task.__class__.__name__
             self.logger.error(msg)
             raise TaskFailedError(msg)
 
 
-class SerialRunner(RunnerBase):
+class SerialRunner(Runner):
     """
     Serial is responsible for running all tasks serially.
     It should only progress to the next task if the previous task completed successfully.
@@ -40,7 +44,7 @@ class SerialRunner(RunnerBase):
             self.raise_if_not_successful(task)
 
 
-class ThreadedRunner(RunnerBase):
+class ThreadedRunner(Runner):
     """
     Threaded is responsible for running all tasks in parallel (threads).
     Success should be set to true only if all tasks were successful.
@@ -55,12 +59,12 @@ class ThreadedRunner(RunnerBase):
         concurrent.futures.wait(futures)
 
         if not all(t.successful for t in tasks):
-            msg = "Failure detected in one or more {}s!".format(tasks[0].task_type_pretty)
+            msg = "Failure detected in one or more {}s!".format(tasks[0].__class__.__name__)
             self.logger.error(msg)
             raise TaskFailedError(msg)
 
 
-class DockerRunner(RunnerBase):
+class DockerRunner(Runner):
     """
     DockerRunner is responsible for running tasks within a Docker Container.
     It is similar to the SerialRunner, in that it also runs tasks serially, and quits if a task fails.

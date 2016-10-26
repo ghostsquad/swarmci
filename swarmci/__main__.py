@@ -6,6 +6,7 @@ from swarmci import main
 logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
+    # noinspection PyBroadException
     try:
         main(sys.argv[1:])
     except Exception:

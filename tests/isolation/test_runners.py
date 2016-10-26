@@ -34,10 +34,10 @@ def a_runner():
                     task_mock = create_task_mock()
                     task_mock.successful = False
 
-                    with pytest.raises(TaskFailedError) as excinfo:
+                    with pytest.raises(TaskFailedError) as exc_info:
                         runner_fixture.run_all([task_mock])
 
-                    assert_that(str(excinfo.value)).matches(r'Failure')
+                    assert_that(str(exc_info.value)).matches(r'Failure')
 
             def when_task_succeeds():
                 def expect_does_not_raise_task_failed_error(runner_fixture):
@@ -53,10 +53,10 @@ def a_runner():
                     task1_mock.successful = True
                     task2_mock.successful = False
 
-                    with pytest.raises(TaskFailedError) as excinfo:
+                    with pytest.raises(TaskFailedError) as exc_info:
                         runner_fixture.run_all([task1_mock, task2_mock])
 
-                    assert_that(str(excinfo.value)).matches(r'Failure')
+                    assert_that(str(exc_info.value)).matches(r'Failure')
 
             def when_all_tasks_succeed():
                 def expect_not_to_raise_error(runner_fixture):
@@ -75,10 +75,10 @@ def a_serial_runner():
                     task1_mock, task2_mock = create_task_mock(count=2)
                     task1_mock.successful = False
 
-                    with pytest.raises(TaskFailedError) as excinfo:
+                    with pytest.raises(TaskFailedError) as exc_info:
                         runner_fixture.run_all([task1_mock, task2_mock])
 
-                    assert_that(str(excinfo.value)).matches(r'Failure')
+                    assert_that(str(exc_info.value)).matches(r'Failure')
 
                     task1_mock.execute.assert_called_once()
                     task2_mock.execute.assert_not_called()
@@ -115,11 +115,11 @@ def describe_threaded_runner():
 @behaves_like(a_runner, a_serial_runner)
 def describe_docker_runner():
 
-    @pytest.fixture(scope='function')
+    @pytest.fixture()
     def cn_fixture():
         return create_autospec(Container, spec_set=True)
 
-    @pytest.fixture(scope='function')
+    @pytest.fixture()
     def task_fixture():
         return create_autospec(Task, spec_set=True)
 
