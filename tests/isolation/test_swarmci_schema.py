@@ -106,6 +106,13 @@ def describe_job_schema():
     def schema():
         return job_schema
 
+    def when_does_not_contain_commands():
+        def expect_json_schema_validation_error(test_input, schema):
+            job = test_input['stages'][0]['jobs'][0]
+            del job['commands']
+
+            assert_validation_failed(job, schema, "'commands' is a required property")
+
 
 @behaves_like(a_set_of_commands)
 def describe_commands_schema():
