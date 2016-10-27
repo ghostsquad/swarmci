@@ -12,7 +12,6 @@ import colorlog
 import yaml
 from colored import fg, attr
 
-from swarmci.errors import SwarmCIError
 from swarmci.task import Build, Stage, Job, Command
 from swarmci.util import get_logger
 from swarmci.version import __version__
