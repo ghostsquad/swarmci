@@ -1,63 +1,59 @@
 # coding=utf-8
-SCHEMA = {
-    "definitions": {
-        "single_command": {
-            "type": "string",
-            "minLength": 1
-        },
+command_schema = {
+    "type": "string",
+    "minLength": 1
+}
 
-        "command": {
-            "anyOf": [
-                {
-                    "$ref": "#/definitions/single_command"
-                },
-                {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/single_command"
-                    },
-                    "minItems": 1
-                }
-            ]
+commands_schema = {
+    "anyOf": [
+        command_schema,
+        {
+            "type": "array",
+            "items": command_schema,
+            "minItems": 1
         }
-    },
+    ]
+}
 
+job_schema = {
     "type": "object",
     "properties": {
-        "stages": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-                "type": "object",
-                "properties": {
-                    "jobs": {
-                        "type": "array",
-                        "minItems": 1,
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name":     {"type": "string"},
-                                "image":    {"type": "string"},
-                                "env":      {
-                                    "type": "object"
-                                },
-                                "commands": {
-                                    "$ref": "#/definitions/command"
-                                },
-                                "after_failure": {
-                                    "$ref": "#/definitions/command"
-                                },
-                                "finally": {
-                                    "$ref": "#/definitions/command"
-                                }
-                            },
-                            "required": ["name", "commands"]
-                        }
-                    }
-                },
-                "required": ["name", "jobs"]
-            }
+        "name":     {"type": "string"},
+        "image":    {"type": "string"},
+        "env":      {
+            "type": "object"
         },
+        "commands": commands_schema,
+        "after_failure": commands_schema,
+        "finally": commands_schema
+    },
+    "required": ["name", "commands"]
+}
+
+jobs_schema = {
+    "type": "array",
+    "minItems": 1,
+    "items": job_schema
+}
+
+stage_schema = {
+    "type": "object",
+    "properties": {
+        "jobs": jobs_schema
+    },
+    "required": ["name", "jobs"]
+}
+
+stages_schema = {
+    "type": "array",
+    "minItems": 1,
+    "items": stage_schema
+}
+
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        "stages": stages_schema
     },
     "required": ["stages"]
 }
