@@ -93,7 +93,8 @@ setup(
         'PyYAML>=3.12',
         'docker-py>=1.10.3',
         'colorlog>=2.7.0',
-        'colored>=1.3.1'
+        'colored>=1.3.1',
+        'jsonschema>=2.5.1'
     ],
 
     # List additional groups of dependencies here (e.g. development

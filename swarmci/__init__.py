@@ -1,53 +1,69 @@
-import sys
-import traceback
+# coding=utf-8
 import argparse
 import logging
 import os
-import yaml
-import colorlog
-from uuid import uuid4
-from colored import fg, attr
+import sys
+import traceback
 from concurrent.futures import ThreadPoolExecutor
-from swarmci.util import get_logger
+from uuid import uuid4
+import jsonschema
+
+import colorlog
+import yaml
+from colored import fg, attr
+
 from swarmci.errors import SwarmCIError
 from swarmci.task import Build, Stage, Job, Command
+from swarmci.util import get_logger
 from swarmci.version import __version__
+from swarmci.swarmci_schema import SCHEMA
 
 logger = get_logger(__name__)
 
 
 def build_command_tasks(job):
+    """
+    Builds Command tasks from the job dict found in the .swarmci file
+    :param job: dict
+    :return: list of swarmci.task.Command
+    """
     return map(lambda x: Command(x), job['commands'])
 
 
 def build_job_tasks(stage):
+    """
+    Builds Job tasks from the stage dict found in the .swarmci file
+    :param stage: dict
+    :return: list of swarmci.task.Job
+    """
     def create_job_task(job):
         commands = build_command_tasks(job)
         return Job(job['name'], image=job['image'], sub_tasks=commands)
 
-    return map(lambda j: create_job_task(j), stage['jobs'])
+    return map(create_job_task, stage['jobs'])
 
 
 def build_stage_tasks(stages, thread_pool_executor):
-    def create_build_task(stage):
+    """
+    Builds Stage tasks from a list of stage dicts found in the .swarmci file
+    :param stages: list of dict
+    :param thread_pool_executor: ThreadPoolExecutor
+    :return: list of swarmci.task.Stage
+    """
+    def create_stage_task(stage):
         jobs = build_job_tasks(stage)
         return Stage(stage['name'], thread_pool_executor=thread_pool_executor, sub_tasks=jobs)
 
-    return map(create_build_task, stages)
-
-
-def validate_stages(stages):
-    if stages is None:
-        raise SwarmCIError('Did not find "stages" key in the .swarmci file.')
-    elif not isinstance(stages, list):
-        raise SwarmCIError('The value of the "stages" key should be a list in the .swarmci file.')
+    return map(create_stage_task, stages)
 
 
 def build_tasks_hierarchy(swarmci_config):
-    stages = swarmci_config.pop('stages', None)
-    validate_stages(stages)
-
-    stage_tasks = build_stage_tasks(stages, ThreadPoolExecutor(max_workers=25))
+    """
+    Builds the tasks hierarchy Build > Stages > Jobs > Commands
+    :param swarmci_config: dict
+    :return: swarmci.task.Build
+    """
+    stage_tasks = build_stage_tasks(swarmci_config['stages'], ThreadPoolExecutor(max_workers=25))
 
     return Build(str(uuid4()), sub_tasks=stage_tasks)
 
@@ -143,8 +159,10 @@ def _print_task_results(tasks, indent=2):
 
 
 def main(args):
+    # handle args
     args = parse_args(args)
 
+    # setup logging
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
     else:
@@ -164,6 +182,9 @@ def main(args):
 
     logger.addHandler(handler)
 
+    logging.getLogger('requests').setLevel(logging.WARNING)
+
+    # load swarmci file
     swarmci_file = args.file if args.file else os.path.join(os.getcwd(), '.swarmci')
 
     swarmci_file = os.path.abspath(swarmci_file)
@@ -173,11 +194,11 @@ def main(args):
         logger.error(msg)
         raise Exception(msg)
 
-    logging.getLogger('requests').setLevel(logging.WARNING)
-
     logger.debug('opening %s', swarmci_file)
     with open(swarmci_file, 'r') as f:
         swarmci_config = yaml.load(f)
+
+    jsonschema.validate(swarmci_config, SCHEMA)
 
     build_task = build_tasks_hierarchy(swarmci_config)
 
