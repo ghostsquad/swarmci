@@ -1,7 +1,10 @@
-from mock import Mock, call
-from assertpy import assert_that
+# coding=utf-8
 import pytest
-from swarmci.task import Task
+from assertpy import assert_that
+from mock import Mock, call
+
+from swarmci.task import Task, Build, Stage, Job
+from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
 
 
 def describe_task():
@@ -45,3 +48,49 @@ def describe_task():
                 exp_kwargs = {'foo': 'bar'}
                 subject.execute(*exp_args, **exp_kwargs)
                 TestTask._execute.assert_called_once_with(*exp_args, **exp_kwargs)
+
+
+def describe_build():
+    def describe_init():
+        def given_runner():
+            def expect_runner_set():
+                subject = Build('foo', runner='foo')
+                assert_that(subject._runner).is_equal_to('foo')
+
+        def given_no_runner():
+            def expect_runner_is_serial_runner():
+                subject = Build('foo')
+                assert_that(subject._runner).is_instance_of(SerialRunner)
+
+
+def describe_stage():
+    def describe_init():
+        def given_runner():
+            def expect_runner_set():
+                subject = Stage('foo', runner='foo')
+                assert_that(subject._runner).is_equal_to('foo')
+
+        def given_no_runner():
+            def expect_runner_is_threaded_runner():
+                subject = Stage('foo', thread_pool_executor='foo')
+                assert_that(subject._runner).is_instance_of(ThreadedRunner)
+
+            def given_no_thread_pool_executor():
+                def expect_value_error():
+                    with pytest.raises(ValueError) as exc_info:
+                        Stage('foo')
+
+                    assert_that(str(exc_info.value)).matches('thread_pool_executor is required')
+
+
+def describe_job():
+    def describe_init():
+        def given_runner():
+            def expect_runner_set():
+                subject = Job('foo', runner='foo')
+                assert_that(subject._runner).is_equal_to('foo')
+
+        def given_no_runner():
+            def expect_runner_is_docker_runner():
+                subject = Job('foo', image='foo')
+                assert_that(subject._runner).is_instance_of(DockerRunner)

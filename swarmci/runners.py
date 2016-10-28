@@ -24,11 +24,12 @@ class Runner(object):
     def run_all(self, tasks):
         raise NotImplementedError
 
-    def raise_if_not_successful(self, task):
-        if not task.successful:
-            msg = "Failure detected, skipping further %ss" % task.__class__.__name__
+    def raise_if_not_successful(self, successful, name):
+        if not successful:
+            msg = "Failure detected in one or more {}s!".format(name)
             self.logger.error(msg)
             raise TaskFailedError(msg)
+
 
 
 class SerialRunner(Runner):
@@ -41,7 +42,7 @@ class SerialRunner(Runner):
         self.tasks = []
         for task in tasks:
             self.run(task)
-            self.raise_if_not_successful(task)
+            self.raise_if_not_successful(task.successful, task.__class__.__name__)
 
 
 class ThreadedRunner(Runner):
@@ -58,10 +59,7 @@ class ThreadedRunner(Runner):
         futures = list(map(lambda t: self._thread_pool_executor.submit(self.run, t), tasks))
         concurrent.futures.wait(futures)
 
-        if not all(t.successful for t in tasks):
-            msg = "Failure detected in one or more {}s!".format(tasks[0].__class__.__name__)
-            self.logger.error(msg)
-            raise TaskFailedError(msg)
+        self.raise_if_not_successful(all(t.successful for t in tasks), tasks[0].__class__.__name__)
 
 
 class DockerRunner(Runner):
@@ -94,4 +92,4 @@ class DockerRunner(Runner):
             self.logger.info('Using Container %s', cn.id[0:11])
             for task in tasks:
                 self.run(task, cn=cn)
-                self.raise_if_not_successful(task)
+                self.raise_if_not_successful(task.successful, task.__class__.__name__)

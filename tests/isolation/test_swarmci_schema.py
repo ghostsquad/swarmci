@@ -1,10 +1,13 @@
 # coding=utf-8
-import yaml
-import pytest
 import jsonschema
-from swarmci.swarmci_schema import SCHEMA, stages_schema, stage_schema, jobs_schema, job_schema, commands_schema, command_schema
+import pytest
+import yaml
 from assertpy import assert_that
 from pytest_describe import behaves_like
+
+from swarmci.swarmci_schema import SCHEMA, stages_schema, stage_schema, jobs_schema, job_schema, commands_schema, \
+    command_schema
+
 
 # shared fixtures
 
@@ -30,6 +33,7 @@ def nameless_input():
 def bad_subtasks_input():
     return 'foo'
 
+
 # helper functions
 
 
@@ -47,6 +51,7 @@ def assert_validation_failed(test_input, schema, *extra_matches):
     for extra_match in extra_matches:
         assert_that(exc_str).matches(extra_match)
 
+
 # shared behaviors
 
 
@@ -61,14 +66,6 @@ def a_task_with_subtasks():
         def expect_json_schema_validation_error(bad_subtasks_input, schema):
             assert_validation_failed(bad_subtasks_input, schema, "'foo' is not of type 'array'")
 
-
-def a_set_of_commands():
-    @pytest.mark.parametrize("test_input", [
-        ["foo", "bar"],
-        "foo"
-    ])
-    def expect_strings_and_lists_to_be_valid(test_input, schema):
-        run_validation(test_input, schema)
 
 # tests
 
@@ -114,11 +111,13 @@ def describe_job_schema():
             assert_validation_failed(job, schema, "'commands' is a required property")
 
 
-@behaves_like(a_set_of_commands)
 def describe_commands_schema():
-    @pytest.fixture(scope='module')
-    def schema():
-        return commands_schema
+    @pytest.mark.parametrize("test_input", [
+        ["foo", "bar"],
+        "foo"
+    ])
+    def expect_strings_and_lists_to_be_valid(test_input):
+        run_validation(test_input, commands_schema)
 
 
 def describe_command_schema():
