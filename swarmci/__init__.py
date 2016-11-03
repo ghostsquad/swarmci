@@ -3,14 +3,13 @@ import argparse
 import logging
 import os
 import sys
-import traceback
 
 import jsonschema
 
 import colorlog
 import yaml
 
-from swarmci.task import Build, Stage, Job, Command, build_tasks_hierarchy, get_task_results
+from swarmci.task import build_tasks_hierarchy, get_task_results
 from swarmci.util import get_logger
 from swarmci.version import __version__
 from swarmci.swarmci_schema import SCHEMA
