@@ -4,8 +4,12 @@ from assertpy import assert_that
 from mock import Mock, call
 
 from swarmci.task import Task, Build, Stage, Job
+from swarmci.task import build_tasks_hierarchy
+from swarmci.task import get_command_results
 from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
 
+
+# test task behaviors
 
 def describe_task():
     def describe_init():
@@ -94,3 +98,57 @@ def describe_job():
             def expect_runner_is_docker_runner():
                 subject = Job('foo', image='foo')
                 assert_that(subject._runner).is_instance_of(DockerRunner)
+
+# test task factory methods
+
+
+def describe_build_tasks_hierarchy():
+    def expect_build_task_returned():
+        config = {
+            'stages': [
+                {
+                    'name': 'foo_stage',
+                    'jobs': [
+                        {
+                            'name': 'foo_job',
+                            'commands': [
+                                'test command'
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+        task = build_tasks_hierarchy(config)
+
+        assert_that(task).is_instance_of(Build)
+
+# task results
+
+
+def describe_get_command_results():
+
+    no_output_found = '*** no output found! ***'
+
+    def given_no_results():
+        def given_no_exc_info():
+            def expect_to_yield_no_output_found():
+                results = list(get_command_results(Task(name='foo')))
+                assert_that(results).is_length(3)
+                assert_that(results)\
+                    .contains_sequence('\x1b[38;5;1mfoo\x1b[0m',
+                                       '\x1b[38;5;1m----------------------------------------------\x1b[0m\n',
+                                       no_output_found)
+
+    def given_results():
+        def expect_to_yield_results():
+            t = Task(name='foo')
+            expected_results = ['this', 'is', 'results']
+            t.results = expected_results
+            actual_results = list(get_command_results(t))
+            assert_that(actual_results).contains_sequence(*expected_results)
+            assert_that(actual_results).does_not_contain(no_output_found)
+
+
+def describe_decide_task_result_action():
+    pass

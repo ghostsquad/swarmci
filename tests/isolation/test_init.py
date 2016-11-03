@@ -4,30 +4,6 @@ from io import StringIO
 import sys
 from assertpy import assert_that
 from swarmci import parse_args
-from swarmci import build_tasks_hierarchy
-import swarmci.task
-
-
-def describe_build_tasks_hierarchy():
-    def expect_build_task_returned():
-        config = {
-            'stages': [
-                {
-                    'name': 'foo_stage',
-                    'jobs': [
-                        {
-                            'name': 'foo_job',
-                            'commands': [
-                                'test command'
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-        task = build_tasks_hierarchy(config)
-
-        assert_that(task).is_instance_of(swarmci.task.Build)
 
 
 @contextmanager

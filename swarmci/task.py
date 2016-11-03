@@ -1,10 +1,14 @@
 import sys
-import traceback
 import time
+import traceback
+from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
-from swarmci.util import get_logger, raise_
-from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
+
+from colored import fg, attr
+
 from swarmci.errors import TaskFailedError
+from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
+from swarmci.util import get_logger, raise_
 
 
 class Task(object):
@@ -191,3 +195,167 @@ class Command(Task):
 
     def _execute(self, *args, **kwargs):
         self._docker_run(self.name, out_func=self.results.append, *args, **kwargs)
+
+# task factory methods
+
+
+def build_command_tasks(job):
+    """
+    Builds Command tasks from the job dict found in the .swarmci file
+    :param job: dict
+    :return: list of swarmci.task.Command
+    """
+    return map(lambda x: Command(x), job['commands'])
+
+
+def build_job_tasks(stage):
+    """
+    Builds Job tasks from the stage dict found in the .swarmci file
+    :param stage: dict
+    :return: list of swarmci.task.Job
+    """
+    def create_job_task(job):
+        commands = build_command_tasks(job)
+        return Job(job['name'], image=job['image'], sub_tasks=commands)
+
+    return map(create_job_task, stage['jobs'])
+
+
+def build_stage_tasks(stages, thread_pool_executor):
+    """
+    Builds Stage tasks from a list of stage dicts found in the .swarmci file
+    :param stages: list of dict
+    :param thread_pool_executor: ThreadPoolExecutor
+    :return: list of swarmci.task.Stage
+    """
+    def create_stage_task(stage):
+        jobs = build_job_tasks(stage)
+        return Stage(stage['name'], thread_pool_executor=thread_pool_executor, sub_tasks=jobs)
+
+    return map(create_stage_task, stages)
+
+
+def build_tasks_hierarchy(swarmci_config):
+    """
+    Builds the tasks hierarchy Build > Stages > Jobs > Commands
+    :param swarmci_config: dict
+    :return: swarmci.task.Build
+    """
+    stage_tasks = build_stage_tasks(swarmci_config['stages'], ThreadPoolExecutor(max_workers=25))
+
+    return Build(str(uuid4()), sub_tasks=stage_tasks)
+
+# task results
+
+
+def get_command_results(task):
+    yield fg(1) + task.name + attr(0)
+    yield "{}----------------------------------------------{}\n".format(fg(1), attr(0))
+
+    output_found = False
+
+    if task.exc_info is not None:  # pragma: no cover
+        # trim the last character because it's a newline
+        # https://docs.python.org/2/library/traceback.html#traceback.format_exception
+        for line in map(lambda x: x[0:-1], traceback.format_exception(*task.exc_info)):
+            yield line
+        output_found = True
+
+    if task.results is not None and len(task.results) > 0:
+        for line in task.results:
+            yield line
+        output_found = True
+
+    if not output_found:
+        yield '*** no output found! ***'
+
+
+def decide_task_result_action(task, get_results_action):
+    """
+    If the task is a command, was not successful and was not skipped
+    returns the get_results func (that was passed in)
+    otherwise, returns a default lambda which returns an empty array
+    :param task: swarmci.task.Task
+    :param get_results_action: func(task)
+    :return: lambda task: ...
+    """
+    if isinstance(task, Command) and not task.successful and task.runtime is not None:
+        return get_results_action
+
+    return lambda x: []
+
+
+def decide_command_result_action(task, success, failed, skipped):
+    if task.successful:
+        return success
+
+    if task.runtime is None:
+        return skipped
+
+    return failed
+
+
+result_meta = {
+    'successful': (fg(2), "\u2713"),
+    'failed': (fg(1), "\u2717"),
+    'skipped': (fg(33), "\u2933")
+}
+
+
+def get_final_status(results):
+    success_ct = results['successful']
+    failed_ct = results['failed']
+    skipped_ct = results['skipped']
+
+    def format_final_status_msg(result, count):
+        color, sym = result_meta[result]
+        return "{}{} {} {}".format(color, sym, count, result, attr(0)) if count > 0 else ''
+
+    success_msg = format_final_status_msg('successful', success_ct)
+
+    if failed_ct > 0:
+        skipped_msg = format_final_status_msg('skipped', skipped_ct)
+        failed_msg = format_final_status_msg('failed', failed_ct)
+
+        return " ".join([failed_msg, skipped_msg, success_msg])
+
+    return success_msg
+
+
+def get_task_results(tasks, indent=2):
+    """
+    Generates
+    :param tasks:
+    :param indent:
+    :return:
+    """
+    results = {
+        'successful': 0,
+        'failed': 0,
+        'skipped': 0
+    }
+    lines = []
+
+    def incr_result(result):
+        results[result] += 1
+        return result_meta[result]
+
+    for task in tasks:
+        action = decide_command_result_action(task,
+                                              success=lambda: incr_result('successful'),
+                                              failed=lambda: incr_result('failed'),
+                                              skipped=lambda: incr_result('skipped'))
+
+        color, sym = action()
+
+        left_pad = " " * indent
+        line = "{}{}{}{} {} ({})".format(left_pad, color, sym, attr(0), task.name, task.runtime_str)
+        lines.append(line)
+
+        new_results, new_lines = get_task_results(task.subtasks, indent=indent + 2)
+        for k, v in new_results.items():
+            results[k] += v
+
+        lines += new_lines
+
+    return results, lines

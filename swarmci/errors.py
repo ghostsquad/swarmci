@@ -26,6 +26,11 @@ class InvalidOperationError(SwarmCIError):
 
 
 class DockerCommandFailedError(SwarmCIError):
+    """
+    Contains the information related to a command run within docker that
+    returned a non-zero exit code
+    """
+
     def __init__(self, *args, **kwargs):
         self._output = kwargs.pop('output')
         self._exit_code = kwargs.pop('exit_code')
