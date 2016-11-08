@@ -3,6 +3,7 @@ import pytest
 from assertpy import assert_that
 from mock import Mock, call
 
+from swarmci.errors import TaskFailedError
 from swarmci.task import Task, Build, Stage, Job
 from swarmci.task import build_tasks_hierarchy
 from swarmci.task import get_command_results
@@ -14,19 +15,19 @@ from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
 def describe_task():
     def describe_init():
         def given_valid_name():
-            def sets_name_property():
+            def expect_sets_name_property():
                 subject = Task('test')
                 assert_that(subject.name).is_equal_to('test')
 
         def given_invalid_name():
-            def raises_error():
-                with pytest.raises(ValueError) as excinfo:
+            def expect_raises_error():
+                with pytest.raises(ValueError) as exc_info:
                     Task(None)
-                assert_that(str(excinfo.value)).is_equal_to('tasks must have a name')
+                assert_that(str(exc_info.value)).is_equal_to('tasks must have a name')
 
     def describe_execute():
         def given_subclass_overriding_execute_private_method():
-            def records_timing_of_the_task_execution():
+            def expect_records_timing_of_the_task_execution():
                 parent_mock = Mock()
                 parent_mock.time = Mock()
                 parent_mock.time.side_effect = [1, 5]
@@ -52,6 +53,18 @@ def describe_task():
                 exp_kwargs = {'foo': 'bar'}
                 subject.execute(*exp_args, **exp_kwargs)
                 TestTask._execute.assert_called_once_with(*exp_args, **exp_kwargs)
+
+        def when_task_fails():
+            def expect_exc_info_recorded():
+                class TestTask(Task):
+                    def _execute(self, *args, **kwargs):
+                        raise TaskFailedError
+
+                subject = TestTask('foo')
+                subject.execute()
+
+                assert_that(subject.exc_info).is_not_none()
+                assert_that(subject.exc_info).is_length(3)
 
 
 def describe_build():

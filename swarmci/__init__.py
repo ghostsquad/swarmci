@@ -33,18 +33,28 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
-def main(args):
-    # handle args
-    args = parse_args(args)
+def get_swarmci_file(file, action):
+    if file is not None:
+        return file
 
-    # setup logging
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-    else:
-        logging.getLogger().setLevel(logging.INFO)
+    return action()
 
+
+def get_default_swarmci_file():
+    return os.path.join(os.getcwd(), '.swarmci')
+
+
+def decide_build_success(task, success, fail):
+    if task.successful:
+        return success
+
+    return fail
+
+
+def setup_logging(debug):  # pragma: no cover
+    logging_level = logging.DEBUG if debug else logging.INFO
+    logging.getLogger().setLevel(logging_level)
     handler = colorlog.StreamHandler()
-
     handler.setFormatter(colorlog.ColoredFormatter(
         '%(log_color)s%(asctime)s (%(threadName)-10s) [%(levelname)8s] - %(message)s',
         log_colors={
@@ -56,37 +66,38 @@ def main(args):
     ))
 
     logger.addHandler(handler)
-
     logging.getLogger('requests').setLevel(logging.WARNING)
 
-    # load swarmci file
-    swarmci_file = args.file if args.file else os.path.join(os.getcwd(), '.swarmci')
 
-    swarmci_file = os.path.abspath(swarmci_file)
-
-    if not swarmci_file:
-        msg = 'must provide either --file or --demo'
-        logger.error(msg)
-        raise Exception(msg)
+def load_swarmci_config(file):
+    swarmci_file = os.path.abspath(get_swarmci_file(file, get_default_swarmci_file))
 
     logger.debug('opening %s', swarmci_file)
-    with open(swarmci_file, 'r') as f:
+    with open(swarmci_file) as f:
         swarmci_config = yaml.load(f)
 
     jsonschema.validate(swarmci_config, SCHEMA)
+    return swarmci_config
+
+
+def main(args):
+    """
+    This is the entry point for SwarmCI
+    :param args: args from argparse
+    """
+    args = parse_args(args)
+
+    setup_logging(args.debug)
+
+    swarmci_config = load_swarmci_config(args.file)
 
     build_task = build_tasks_hierarchy(swarmci_config)
 
     logger.debug('starting build')
     build_task.execute()
 
-    if build_task.successful:
-        logger.info('all stages completed successfully!')
-    else:
-        logger.error('some stages did not complete successfully. :(')
-
     for line in get_task_results(build_task):
         print(line)
 
-    if not build_task.successful:
-        sys.exit(1)
+    end_action = decide_build_success(build_task, success=lambda: sys.exit(0), fail=lambda: sys.exit(1))
+    end_action()
