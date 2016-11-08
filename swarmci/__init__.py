@@ -33,15 +33,15 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
-def get_swarmci_file(file, action):
-    if file is not None:
-        return file
+def load_swarmci_config(file):  # pragma: no cover
+    swarmci_file = os.path.abspath(file)
 
-    return action()
+    logger.debug('opening %s', swarmci_file)
+    with open(swarmci_file) as f:
+        swarmci_config = yaml.load(f)
 
-
-def get_default_swarmci_file():
-    return os.path.join(os.getcwd(), '.swarmci')
+    jsonschema.validate(swarmci_config, SCHEMA)
+    return swarmci_config
 
 
 def decide_build_success(task, success, fail):
@@ -69,15 +69,9 @@ def setup_logging(debug):  # pragma: no cover
     logging.getLogger('requests').setLevel(logging.WARNING)
 
 
-def load_swarmci_config(file):
-    swarmci_file = os.path.abspath(get_swarmci_file(file, get_default_swarmci_file))
-
-    logger.debug('opening %s', swarmci_file)
-    with open(swarmci_file) as f:
-        swarmci_config = yaml.load(f)
-
-    jsonschema.validate(swarmci_config, SCHEMA)
-    return swarmci_config
+def print_task_results(task):  # pragma: no cover
+    for line in get_task_results(task):
+        print(line)
 
 
 def main(args):
@@ -96,8 +90,7 @@ def main(args):
     logger.debug('starting build')
     build_task.execute()
 
-    for line in get_task_results(build_task):
-        print(line)
+    print_task_results(build_task)
 
     end_action = decide_build_success(build_task, success=lambda: sys.exit(0), fail=lambda: sys.exit(1))
     end_action()
