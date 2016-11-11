@@ -190,11 +190,16 @@ class Command(Task):
     """
 
     def __init__(self, name, *args, docker_run=None, **kwargs):
-        self._docker_run = docker_run if docker_run else DockerRunner.run_in_docker
+        if docker_run:
+            self._docker_run = docker_run
+        else:
+            self._docker_run = DockerRunner.run_in_docker
         super().__init__(name, *args, **kwargs)
 
     def _execute(self, *args, **kwargs):
-        self._docker_run(self.name, out_func=self.results.append, *args, **kwargs)
+        results = []
+        self._docker_run(self.name, out_func=results.append, *args, **kwargs)
+        return results
 
 # task factory methods
 
