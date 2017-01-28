@@ -108,7 +108,7 @@ bar-job:
 ```
 vagrant up
 vagrant ssh manager
-/opt/swarmci/run-demo.sh
+/opt/swarmci/examples/run-demo.sh
 ```
 
 ## Running Tests

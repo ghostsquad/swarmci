@@ -65,11 +65,11 @@ class Container(object):
 
     def execute(self, cmd, out_func=None):
         """
-        Prepares a command to be executed within the container
+        Executes a command within the container
         :param cmd: cmd to run
         :param out_func: a func to call for each line of output received
-            this func should take a string argument
-        :return: nothing. raises an exception if the command fails
+            func(string)
+        :return: command output
         """
         if out_func is None:
             def out_func(x):
@@ -91,3 +91,5 @@ class Container(object):
         if exit_code != 0:
             msg = 'command [{}] returned exitcode [{}]'.format(cmd, exit_code)
             raise DockerCommandFailedError(message=msg, exit_code=exit_code, cmd=cmd, output=output)
+
+        return output

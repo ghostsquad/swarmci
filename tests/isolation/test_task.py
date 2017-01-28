@@ -5,7 +5,7 @@ from mock import Mock, call, ANY
 
 from swarmci.errors import TaskFailedError
 from swarmci.task import Task, Build, Stage, Job, Command, RunnerTask
-from swarmci.task import build_tasks_hierarchy, build_command_tasks
+from swarmci.task import build_tasks_hierarchy, build_command_tasks, build_job_tasks
 from swarmci.task import get_command_results
 from swarmci.runners import SerialRunner, ThreadedRunner, DockerRunner
 
@@ -166,7 +166,7 @@ def describe_job():
             def given_no_image():
                 def expect_value_error_raised():
                     with pytest.raises(ValueError) as exc_info:
-                        subject = Job('foo')
+                        Job('foo')
 
                     assert_that(str(exc_info.value)).is_equal_to('image is required if runner is not provided')
 
@@ -198,15 +198,21 @@ def describe_command():
                 docker_run_mock.assert_called_once_with(expected_task_name, out_func=ANY)
 
             def expect_results_stored():
+                expected_results = ['this is the expected result']
                 docker_run_mock = Mock()
-                out_func_mock = Mock()
+                docker_run_mock.return_value = expected_results
+                subject = Command('foo', docker_run=docker_run_mock)
+
+                subject.execute()
+
+                assert_that(subject.results).is_equal_to(expected_results)
 
 
 # test task factory methods
 
 
 def describe_build_command_tasks():
-    def maps_commands_key_to_build_command_tasks():
+    def returns_enumerator_of_command_tasks():
         first_command = 'first command'
         second_command = 'second_command'
 
@@ -218,10 +224,30 @@ def describe_build_command_tasks():
         }
 
         result = list(build_command_tasks(job))
+
         assert_that(result).is_length(2)
         assert_that(all([isinstance(x, Command) for x in result])).is_true()
         assert_that(result[0].name).is_equal_to(first_command)
         assert_that(result[1].name).is_equal_to(second_command)
+
+
+def describe_build_job_tasks():
+    def returns_enumerator_of_job_tasks():
+        first_job = {
+            'name': 'foo',
+            'image': 'foo-image'
+        }
+        second_job = Job('bar')
+
+        stage = {
+            'jobs': [
+                first_job,
+                second_job
+            ]
+        }
+
+        result = list(build_job_tasks(stage=stage))
+        assert_that(all([isinstance(x, Job) for x in result])).is_true()
 
 
 def describe_build_tasks_hierarchy():

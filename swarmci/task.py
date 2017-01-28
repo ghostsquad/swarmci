@@ -197,9 +197,8 @@ class Command(Task):
         super().__init__(name, *args, **kwargs)
 
     def _execute(self, *args, **kwargs):
-        results = []
-        self._docker_run(self.name, out_func=results.append, *args, **kwargs)
-        return results
+        out_func = kwargs.pop('out_func', None)
+        return self._docker_run(self.name, out_func=out_func, *args, **kwargs)
 
 # task factory methods
 
