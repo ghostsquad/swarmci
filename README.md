@@ -7,6 +7,10 @@ SwarmCI (super pre-alpha) is a CI extension, meaning, you can use it to extend y
 
 [![Demo Video](https://img.youtube.com/vi/Vkcnyc17HVI/0.jpg)](https://www.youtube.com/watch?v=Vkcnyc17HVI)
 
+## Updates
+* 2017-02-23 - I haven't had a lot of time to spend on this project, as I started a new job late last year, and I've been pretty busy with learning a bunch of other things. 
+Recently, I've decided to start a new project [Ocean Currents](https://github.com/ghostsquad/ocean-currents), which I'd like to design with using the same core concept of SwarmCI, but make it general purpose (think of data pipelines, map/reduce pipelines, etl systems). I'm also considering doing this in GoLang instead of Python, but I haven't yet made a decision. If you have any thoughts/questions about this, feel free to [Open an Issue](https://github.com/ghostsquad/swarmci/issues/new).
+
 ## Inspiration
 This project inspired me because of the problems I've faced with conventional CI platforms like Jenkins, Bamboo, Teamcity.
 
