@@ -1,58 +1,13 @@
-import pytest
+import sys
 from contextlib import contextmanager
 from io import StringIO
-import sys
+from mock import Mock, create_autospec
+
+import pytest
 from assertpy import assert_that
-from swarmci import parse_args
-from swarmci.errors import SwarmCIError
-from swarmci import build_tasks_hierarchy
-from swarmci.task import Task, TaskType, TaskFactory
 
-
-def describe_build_tasks_hierarchy():
-    def given_no_stages():
-        def expect_error_raised():
-            config = {
-                "foo": "bar"
-            }
-
-            with pytest.raises(SwarmCIError) as excinfo:
-                build_tasks_hierarchy(config, TaskFactory())
-
-            assert_that(str(excinfo.value)).is_equal_to('Did not find "stages" key in the .swarmci file.')
-
-    def given_stages_not_a_list():
-        def expect_error_raised():
-            config = {
-                "stages": "bar"
-            }
-
-            with pytest.raises(SwarmCIError) as excinfo:
-                build_tasks_hierarchy(config, TaskFactory())
-
-            assert_that(str(excinfo.value)).is_equal_to(
-                'The value of the "stages" key should be a list in the .swarmci file.')
-
-    def expect_build_task_returned():
-        config = {
-            'stages': [
-                {
-                    'name': 'foo_stage',
-                    'jobs': [
-                        {
-                            'name': 'foo_job',
-                            'commands': [
-                                'test command'
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-        task = build_tasks_hierarchy(config, TaskFactory())
-
-        assert_that(task).is_instance_of(Task)
-        assert_that(task.task_type).is_equal_to(TaskType.BUILD)
+from swarmci import parse_args, decide_build_success
+from swarmci.task import Task
 
 
 @contextmanager
@@ -76,7 +31,48 @@ def describe_parse_args():
             assert_that(stdout.getvalue()).matches(r'SwarmCI \d+\.\d+\.\d+')
 
     def given_file_option():
-        def expect_file_set_in_output():
-            expected_filename = 'foo.bar'
-            actual_args = parse_args(['--file', expected_filename])
-            assert_that(actual_args.file).is_equal_to(expected_filename)
+        def when_option_provided():
+            def expect_value_passed():
+                expected_filename = 'foo.bar'
+                actual_args = parse_args(['--file', expected_filename])
+                assert_that(actual_args.file).is_equal_to(expected_filename)
+
+        def when_option_not_provided():
+            def expect_defaults_to_dot_swarmci():
+                actual_args = parse_args([])
+                assert_that(actual_args.file).is_equal_to('.swarmci')
+
+    def describe_option_debug():
+        def when_debug_flag_provided():
+            def expect_debug_set_to_true():
+                actual_args = parse_args(['--debug'])
+                assert_that(actual_args.debug).is_true()
+
+        def when_debug_flag_not_provided():
+            def expect_debug_set_to_false():
+                actual_args = parse_args([])
+                assert_that(actual_args.debug).is_false()
+
+
+def describe_decide_build_success():
+    def when_task_successful():
+        def expect_success_arg_returned():
+            task = create_autospec(Task)
+            task.successful = True
+
+            expected = Mock()
+
+            result = decide_build_success(task, success=expected, fail=None)
+
+            assert_that(result).is_equal_to(expected)
+
+    def when_task_not_successful():
+        def expect_fail_arg_returned():
+            task = create_autospec(Task)
+            task.successful = False
+
+            expected = Mock()
+
+            result = decide_build_success(task, success=None, fail=expected)
+
+            assert_that(result).is_equal_to(expected)

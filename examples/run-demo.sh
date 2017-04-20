@@ -8,5 +8,5 @@ python3 -m swarmci
 echo ""
 echo "========== RUNNING FAILURE DEMO =============="
 echo ""
-python3 -m swarmci --file .swarmci.fails
+python3 -m swarmci --file .swarmci.fails --debug
 popd

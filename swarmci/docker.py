@@ -63,14 +63,17 @@ class Container(object):
 
         self.docker.put_archive(self.id, path=dest, data=data)
 
-    def execute(self, cmd, out_func=(lambda x: None)):
+    def execute(self, cmd, out_func=None):
         """
-        Prepares a command to be executed within the container
+        Executes a command within the container
         :param cmd: cmd to run
         :param out_func: a func to call for each line of output received
-            this func should take a string argument
-        :return: nothing. raises an exception if the command fails
+            func(string)
+        :return: command output
         """
+        if out_func is None:
+            def out_func(x):
+                pass
 
         exec_id = self.docker.exec_create(container=self.id, cmd=cmd, tty=True)['Id']
         logger.debug('starting exec [%s] in %s (%s)', cmd, self.name, self.id)
@@ -78,8 +81,8 @@ class Container(object):
         for line in self.docker.exec_start(exec_id=exec_id, stream=True):
             line = line.decode().rstrip()
             output.append(line)
-            out_func(line)
             logger.info(line)
+            out_func(line)
 
         logger.debug("attempting to get exit_code")
         exit_code = int(self.docker.exec_inspect(exec_id)['ExitCode'])
@@ -88,3 +91,5 @@ class Container(object):
         if exit_code != 0:
             msg = 'command [{}] returned exitcode [{}]'.format(cmd, exit_code)
             raise DockerCommandFailedError(message=msg, exit_code=exit_code, cmd=cmd, output=output)
+
+        return output

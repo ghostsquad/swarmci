@@ -7,7 +7,11 @@ from swarmci.errors import TaskFailedError
 logger = get_logger(__name__)
 
 
-class RunnerBase(object):
+class Runner(object):
+    """
+    The base class for all runners
+    """
+
     def __init__(self):
         self.tasks = []
         self.logger = get_logger(__name__)
@@ -20,14 +24,15 @@ class RunnerBase(object):
     def run_all(self, tasks):
         raise NotImplementedError
 
-    def raise_if_not_successful(self, task):
-        if not task.successful:
-            msg = "Failure detected, skipping further %ss" % task.pretty_task_type
+    def raise_if_not_successful(self, successful, name):
+        if not successful:
+            msg = "Failure detected in one or more {}s!".format(name)
             self.logger.error(msg)
             raise TaskFailedError(msg)
 
 
-class SerialRunner(RunnerBase):
+
+class SerialRunner(Runner):
     """
     Serial is responsible for running all tasks serially.
     It should only progress to the next task if the previous task completed successfully.
@@ -37,10 +42,10 @@ class SerialRunner(RunnerBase):
         self.tasks = []
         for task in tasks:
             self.run(task)
-            self.raise_if_not_successful(task)
+            self.raise_if_not_successful(task.successful, task.__class__.__name__)
 
 
-class ThreadedRunner(RunnerBase):
+class ThreadedRunner(Runner):
     """
     Threaded is responsible for running all tasks in parallel (threads).
     Success should be set to true only if all tasks were successful.
@@ -54,13 +59,10 @@ class ThreadedRunner(RunnerBase):
         futures = list(map(lambda t: self._thread_pool_executor.submit(self.run, t), tasks))
         concurrent.futures.wait(futures)
 
-        if not all(t.successful for t in tasks):
-            msg = "Failure detected in one or more {}s!".format(tasks[0].pretty_task_type)
-            self.logger.error(msg)
-            raise TaskFailedError(msg)
+        self.raise_if_not_successful(all(t.successful for t in tasks), tasks[0].__class__.__name__)
 
 
-class DockerRunner(RunnerBase):
+class DockerRunner(Runner):
     """
     DockerRunner is responsible for running tasks within a Docker Container.
     It is similar to the SerialRunner, in that it also runs tasks serially, and quits if a task fails.
@@ -82,14 +84,12 @@ class DockerRunner(RunnerBase):
         super().__init__()
 
     @staticmethod
-    def run_in_docker(command, cn):
-        logger.info("----BEGIN STDOUT----")
-        cn.execute(command)
-        logger.info("----END STDOUT----")
+    def run_in_docker(command, cn, out_func=None):
+        cn.execute(command, out_func=out_func)
 
     def run_all(self, tasks):
         with self._cn(self.image, self.host_config, self.docker, env=self.env) as cn:
             self.logger.info('Using Container %s', cn.id[0:11])
             for task in tasks:
                 self.run(task, cn=cn)
-                self.raise_if_not_successful(task)
+                self.raise_if_not_successful(task.successful, task.__class__.__name__)
